@@ -7,6 +7,12 @@ interface Props {
 
 const { title } = Astro.props;
 const path = Astro.url.pathname;
+
+const navLinks = [
+  { href: '/admin', label: 'Dashboard', exact: true },
+  { href: '/admin/produk', label: 'Produk' },
+  { href: '/admin/master', label: 'Master' },
+];
 ---
 
 <!doctype html>
@@ -16,20 +22,42 @@ const path = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} — Nejemeyek Admin</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body class="bg-stone-100 text-stone-900 font-sans min-h-screen">
-    <nav class="bg-brand-700 text-white px-4 py-3 flex items-center gap-6">
-      <a href="/admin" class="font-bold">Nejemeyek</a>
-      <a
-        href="/admin/produk"
-        class={`text-sm ${path.startsWith('/admin/produk') ? 'text-white font-medium' : 'text-brand-200 hover:text-white'}`}
-      >Produk</a>
-      <a
-        href="/admin/master"
-        class={`text-sm ${path === '/admin/master' ? 'text-white font-medium' : 'text-brand-200 hover:text-white'}`}
-      >Master</a>
+  <body class="bg-stone-50 text-stone-900 font-sans min-h-screen">
+    <!-- Top nav -->
+    <nav class="bg-white border-b border-stone-200 sticky top-0 z-10">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 h-14">
+        <a href="/admin" class="font-semibold text-stone-900 mr-4 shrink-0">
+          Nejemeyek <span class="text-stone-400 font-normal text-sm">Admin</span>
+        </a>
+        <div class="flex items-center gap-1 flex-1">
+          {navLinks.map(link => {
+            const isActive = link.exact ? path === link.href : path.startsWith(link.href);
+            return (
+              <a
+                href={link.href}
+                class={`px-3 py-1.5 text-sm rounded-lg transition-colors ${isActive ? 'bg-stone-100 text-stone-900 font-medium' : 'text-stone-500 hover:text-stone-900 hover:bg-stone-50'}`}
+              >
+                {link.label}
+              </a>
+            );
+          })}
+        </div>
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="shrink-0 text-xs text-stone-400 hover:text-stone-600 border border-stone-200 rounded-lg px-3 py-1.5 transition-colors"
+        >
+          ↗ Lihat Toko
+        </a>
+      </div>
     </nav>
-    <main class="max-w-3xl mx-auto px-4 py-8">
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 py-6">
       <slot />
     </main>
   </body>

@@ -48,123 +48,132 @@ if (Astro.request.method === 'POST') {
 
 <AdminLayout title={`Edit: ${product.displayName}`}>
   <div class="flex items-center gap-3 mb-6">
-    <a href="/admin/produk" class="text-stone-500 hover:text-stone-700 text-sm">&#8592; Kembali</a>
-    <h1 class="text-xl font-bold truncate">{product.displayName}</h1>
+    <a href="/admin/produk" class="text-stone-400 hover:text-stone-700 text-sm transition-colors">&#8592; Kembali</a>
+    <span class="text-stone-200 text-xs">|</span>
+    <h1 class="text-xl font-semibold truncate">{product.displayName}</h1>
+    <span class={`ml-auto shrink-0 inline-block text-xs px-2 py-0.5 rounded-full ${product.is_active === 1 ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+      {product.is_active === 1 ? 'Aktif' : 'Habis'}
+    </span>
   </div>
 
   {saved && (
-    <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 mb-4 text-sm">
+    <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 mb-5 text-sm">
       Tersimpan!
     </div>
   )}
   {error && (
-    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
+    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-5 text-sm">
       {error}
     </div>
   )}
 
-  <div class="space-y-4">
-    <!-- Edit form -->
-    <form method="POST" class="bg-white rounded-xl p-5 shadow-sm space-y-4">
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Kategori</label>
-          <select name="category_id" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
-            {categories.map(c => (
-              <option value={c.id} selected={c.id === product.category_id}>{c.name}</option>
-            ))}
-          </select>
+  <!-- Desktop 2-col / mobile stack -->
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5">
+    <!-- Left: form + danger zone -->
+    <div class="space-y-4">
+      <form method="POST" class="bg-white border border-stone-100 rounded-xl p-5 space-y-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1.5">Kategori</label>
+            <select name="category_id" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400">
+              {categories.map(c => (
+                <option value={c.id} selected={c.id === product.category_id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1.5">Variant</label>
+            <select name="variant_id" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400">
+              {variants.map(v => (
+                <option value={v.id} selected={v.id === product.variant_id}>{v.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Variant</label>
-          <select name="variant_id" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
-            {variants.map(v => (
-              <option value={v.id} selected={v.id === product.variant_id}>{v.label}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Jual (Rp)</label>
-          <input
-            type="number"
-            name="price"
-            value={product.price}
-            min="1"
-            required
-            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Coret (Rp)</label>
-          <input
-            type="number"
-            name="original_price"
-            value={product.original_price ?? ''}
-            min="1"
-            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
-            placeholder="Kosongkan jika tidak ada"
-          />
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-stone-700 mb-1">Deskripsi</label>
-        <textarea
-          name="description"
-          rows="3"
-          class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
-          placeholder="Deskripsi singkat produk (opsional)"
-        >{product.description ?? ''}</textarea>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-stone-700 mb-1">Urutan Tampil</label>
-        <input
-          type="number"
-          name="sort_order"
-          value={product.sort_order}
-          class="w-32 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
-        />
-      </div>
-      <div class="flex items-center gap-3 pt-1">
-        <button type="submit" class="bg-brand-600 text-white font-medium py-2 px-5 rounded-lg hover:bg-brand-700 text-sm">
-          Simpan
-        </button>
-        <span class="text-xs text-stone-400">
-          Harga saat ini: {formatRupiah(product.price)}
-        </span>
-      </div>
-    </form>
 
-    <!-- Image upload -->
-    <div class="bg-white rounded-xl p-5 shadow-sm">
-      <ImageUploader productId={product.id} currentImageUrl={product.image_url} />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1.5">Harga Jual (Rp)</label>
+            <input
+              type="number"
+              name="price"
+              value={product.price}
+              min="1"
+              required
+              class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-1.5">Harga Coret (Rp)</label>
+            <input
+              type="number"
+              name="original_price"
+              value={product.original_price ?? ''}
+              min="1"
+              class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
+              placeholder="Kosongkan jika tidak ada"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1.5">Deskripsi</label>
+          <textarea
+            name="description"
+            rows="3"
+            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400 resize-none"
+            placeholder="Deskripsi singkat produk (opsional)"
+          >{product.description ?? ''}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1.5">Urutan Tampil</label>
+          <input
+            type="number"
+            name="sort_order"
+            value={product.sort_order}
+            class="w-28 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
+          />
+        </div>
+
+        <div class="flex items-center gap-3 pt-1">
+          <button type="submit" class="bg-stone-900 text-white font-medium py-2 px-5 rounded-lg hover:bg-stone-800 transition-colors text-sm">
+            Simpan
+          </button>
+          <span class="text-xs text-stone-400">{formatRupiah(product.price)}</span>
+        </div>
+      </form>
+
+      <!-- Danger zone -->
+      <div class="bg-white border border-red-100 rounded-xl p-5">
+        <p class="text-xs font-medium text-stone-500 uppercase tracking-wide mb-4">Zona Bahaya</p>
+        <div class="flex gap-3 items-center flex-wrap">
+          <button
+            type="button"
+            id="toggle-active-btn"
+            data-id={product.id}
+            data-active={product.is_active}
+            class={`text-sm px-4 py-2 rounded-lg border font-medium transition-colors ${product.is_active === 1 ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-green-200 text-green-700 hover:bg-green-50'}`}
+          >
+            {product.is_active === 1 ? 'Tandai Habis' : 'Aktifkan Kembali'}
+          </button>
+          <button
+            type="button"
+            id="delete-product-btn"
+            data-id={product.id}
+            data-name={product.displayName}
+            class="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors font-medium"
+          >
+            Hapus Produk
+          </button>
+        </div>
+        <p id="danger-error" class="hidden text-red-600 text-xs mt-3"></p>
+      </div>
     </div>
 
-    <!-- Danger zone -->
-    <div class="bg-white rounded-xl p-5 shadow-sm border border-red-100">
-      <p class="text-sm font-medium text-stone-700 mb-3">Zona Bahaya</p>
-      <div class="flex gap-3 items-center">
-        <button
-          type="button"
-          id="toggle-active-btn"
-          data-id={product.id}
-          data-active={product.is_active}
-          class={`text-sm px-4 py-2 rounded-lg border font-medium ${product.is_active === 1 ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-green-200 text-green-700 hover:bg-green-50'}`}
-        >
-          {product.is_active === 1 ? 'Tandai Habis' : 'Aktifkan Kembali'}
-        </button>
-        <button
-          type="button"
-          id="delete-product-btn"
-          data-id={product.id}
-          data-name={product.displayName}
-          class="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium"
-        >
-          Hapus Produk
-        </button>
-      </div>
-      <p id="danger-error" class="hidden text-red-600 text-xs mt-2"></p>
+    <!-- Right: image uploader -->
+    <div class="bg-white border border-stone-100 rounded-xl p-5 self-start">
+      <ImageUploader productId={product.id} currentImageUrl={product.image_url} />
     </div>
   </div>
 </AdminLayout>

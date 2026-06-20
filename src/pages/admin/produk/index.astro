@@ -10,62 +10,129 @@ const products = await getAllProducts(db);
 
 <AdminLayout title="Produk">
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold">Produk</h1>
-    <a href="/admin/produk/new" class="bg-brand-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-brand-700">
+    <h1 class="text-xl font-semibold">Produk</h1>
+    <a href="/admin/produk/new" class="bg-stone-900 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-stone-800 transition-colors">
       + Tambah
     </a>
   </div>
 
   {products.length === 0 && (
-    <div class="bg-white rounded-xl p-8 shadow-sm text-center text-stone-400">
-      <p class="text-sm">Belum ada produk.</p>
-      <a href="/admin/produk/new" class="text-brand-600 text-sm font-medium hover:underline mt-2 inline-block">Tambah produk pertama</a>
+    <div class="bg-white border border-stone-100 rounded-xl p-10 text-center text-stone-400">
+      <p class="text-sm mb-2">Belum ada produk.</p>
+      <a href="/admin/produk/new" class="text-stone-900 text-sm font-medium hover:underline">Tambah produk pertama →</a>
     </div>
   )}
 
-  <p id="delete-error" class="hidden text-red-600 text-sm mt-2"></p>
+  <p id="delete-error" class="hidden text-red-600 text-sm mb-3"></p>
 
-  <div class="space-y-2">
-    {products.map(p => (
-      <div class="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
-        <div class="w-14 h-14 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
-          {p.image_url ? (
-            <img src={p.image_url} alt={p.displayName} class="w-full h-full object-cover" />
-          ) : (
-            <div class="w-full h-full flex items-center justify-center text-stone-300 text-xl">&#x1F7AB;</div>
-          )}
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="font-medium text-stone-900 text-sm truncate">{p.displayName}</p>
-          <p class="text-xs text-stone-500">{formatRupiah(p.price)}</p>
-          <span class={`inline-block text-xs px-2 py-0.5 rounded-full mt-0.5 ${p.is_active === 1 ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
-            {p.is_active === 1 ? 'Aktif' : 'Habis'}
-          </span>
-        </div>
-        <div class="flex gap-1.5 flex-shrink-0">
-          <button
-            type="button"
-            class="text-xs px-2.5 py-1.5 border border-stone-200 rounded-lg hover:bg-stone-50 toggle-btn"
-            data-id={p.id}
-            data-active={p.is_active}
-          >
-            {p.is_active === 1 ? 'Habiskan' : 'Aktifkan'}
-          </button>
-          <a href={`/admin/produk/${p.id}`} class="text-xs px-2.5 py-1.5 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100">
-            Edit
-          </a>
-          <button
-            type="button"
-            class="text-xs px-2.5 py-1.5 text-red-600 border border-red-100 rounded-lg hover:bg-red-50 delete-btn"
-            data-id={p.id}
-            data-name={p.displayName}
-          >
-            &times;
-          </button>
-        </div>
+  {products.length > 0 && (
+    <>
+      <!-- Desktop table -->
+      <div class="hidden md:block bg-white border border-stone-100 rounded-xl overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-100 text-left">
+              <th class="px-4 py-3 font-medium text-stone-500 w-16"></th>
+              <th class="px-4 py-3 font-medium text-stone-500">Produk</th>
+              <th class="px-4 py-3 font-medium text-stone-500">Harga</th>
+              <th class="px-4 py-3 font-medium text-stone-500">Status</th>
+              <th class="px-4 py-3 font-medium text-stone-500 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-50">
+            {products.map(p => (
+              <tr class="hover:bg-stone-50 transition-colors">
+                <td class="px-4 py-3">
+                  <div class="w-10 h-10 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
+                    {p.image_url ? (
+                      <img src={p.image_url} alt={p.displayName} class="w-full h-full object-cover" />
+                    ) : (
+                      <div class="w-full h-full flex items-center justify-center text-stone-300 text-base">&#x1F7AB;</div>
+                    )}
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  <p class="font-medium text-stone-900">{p.displayName}</p>
+                </td>
+                <td class="px-4 py-3 text-stone-600">{formatRupiah(p.price)}</td>
+                <td class="px-4 py-3">
+                  <span class={`inline-block text-xs px-2 py-0.5 rounded-full ${p.is_active === 1 ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                    {p.is_active === 1 ? 'Aktif' : 'Habis'}
+                  </span>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-1.5 justify-end">
+                    <button
+                      type="button"
+                      class="text-xs px-2.5 py-1.5 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors toggle-btn"
+                      data-id={p.id}
+                      data-active={p.is_active}
+                    >
+                      {p.is_active === 1 ? 'Habiskan' : 'Aktifkan'}
+                    </button>
+                    <a href={`/admin/produk/${p.id}`} class="text-xs px-2.5 py-1.5 border border-stone-200 text-stone-700 rounded-lg hover:bg-stone-50 transition-colors">
+                      Edit
+                    </a>
+                    <button
+                      type="button"
+                      class="text-xs px-2.5 py-1.5 text-red-600 border border-red-100 rounded-lg hover:bg-red-50 transition-colors delete-btn"
+                      data-id={p.id}
+                      data-name={p.displayName}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    ))}
-  </div>
+
+      <!-- Mobile cards -->
+      <div class="md:hidden space-y-2">
+        {products.map(p => (
+          <div class="bg-white border border-stone-100 rounded-xl p-3 flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
+              {p.image_url ? (
+                <img src={p.image_url} alt={p.displayName} class="w-full h-full object-cover" />
+              ) : (
+                <div class="w-full h-full flex items-center justify-center text-stone-300 text-base">&#x1F7AB;</div>
+              )}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-stone-900 text-sm truncate">{p.displayName}</p>
+              <p class="text-xs text-stone-500">{formatRupiah(p.price)}</p>
+              <span class={`inline-block text-xs px-2 py-0.5 rounded-full mt-0.5 ${p.is_active === 1 ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
+                {p.is_active === 1 ? 'Aktif' : 'Habis'}
+              </span>
+            </div>
+            <div class="flex gap-1.5 flex-shrink-0">
+              <button
+                type="button"
+                class="text-xs px-2.5 py-1.5 border border-stone-200 rounded-lg hover:bg-stone-50 toggle-btn"
+                data-id={p.id}
+                data-active={p.is_active}
+              >
+                {p.is_active === 1 ? 'Habiskan' : 'Aktifkan'}
+              </button>
+              <a href={`/admin/produk/${p.id}`} class="text-xs px-2.5 py-1.5 border border-stone-200 text-stone-700 rounded-lg hover:bg-stone-50">
+                Edit
+              </a>
+              <button
+                type="button"
+                class="text-xs px-2.5 py-1.5 text-red-600 border border-red-100 rounded-lg hover:bg-red-50 delete-btn"
+                data-id={p.id}
+                data-name={p.displayName}
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )}
 </AdminLayout>
 
 <script>

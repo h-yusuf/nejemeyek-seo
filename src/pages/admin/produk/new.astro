@@ -49,8 +49,9 @@ if (Astro.request.method === 'POST') {
 
 <AdminLayout title="Tambah Produk">
   <div class="flex items-center gap-3 mb-6">
-    <a href="/admin/produk" class="text-stone-500 hover:text-stone-700 text-sm">&#8592; Kembali</a>
-    <h1 class="text-2xl font-bold">Tambah Produk</h1>
+    <a href="/admin/produk" class="text-stone-400 hover:text-stone-700 text-sm transition-colors">&#8592; Kembali</a>
+    <span class="text-stone-200 text-xs">|</span>
+    <h1 class="text-xl font-semibold">Tambah Produk</h1>
   </div>
 
   {error && (
@@ -62,66 +63,71 @@ if (Astro.request.method === 'POST') {
       Tambah <a href="/admin/master" class="underline font-medium">kategori dan variant</a> dulu sebelum membuat produk.
     </div>
   ) : (
-    <form method="POST" class="bg-white rounded-xl p-6 shadow-sm space-y-4">
-      <div class="grid grid-cols-2 gap-4">
+    <form method="POST" class="bg-white border border-stone-100 rounded-xl p-6 space-y-5 max-w-2xl">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Kategori *</label>
-          <select name="category_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+          <label class="block text-sm font-medium text-stone-700 mb-1.5">Kategori *</label>
+          <select name="category_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400">
             {categories.map(c => <option value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Variant *</label>
-          <select name="variant_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+          <label class="block text-sm font-medium text-stone-700 mb-1.5">Variant *</label>
+          <select name="variant_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400">
             {variants.map(v => <option value={v.id}>{v.label}</option>)}
           </select>
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-4">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Jual (Rp) *</label>
+          <label class="block text-sm font-medium text-stone-700 mb-1.5">Harga Jual (Rp) *</label>
           <input
             type="number"
             name="price"
             required
             min="1"
-            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
             placeholder="25000"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Coret (Rp)</label>
+          <label class="block text-sm font-medium text-stone-700 mb-1.5">Harga Coret (Rp)</label>
           <input
             type="number"
             name="original_price"
             min="1"
-            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
             placeholder="30000 (opsional)"
           />
         </div>
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-stone-700 mb-1">Deskripsi</label>
+        <label class="block text-sm font-medium text-stone-700 mb-1.5">Deskripsi</label>
         <textarea
           name="description"
           rows="3"
-          class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
+          class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400 resize-none"
           placeholder="Deskripsi singkat produk (opsional)"
         ></textarea>
       </div>
+
       <div>
-        <label class="block text-sm font-medium text-stone-700 mb-1">Urutan Tampil</label>
+        <label class="block text-sm font-medium text-stone-700 mb-1.5">Urutan Tampil</label>
         <input
           type="number"
           name="sort_order"
           value="0"
-          class="w-32 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+          class="w-28 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-stone-400"
         />
       </div>
-      <div class="pt-2">
-        <button type="submit" class="bg-brand-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-brand-700 text-sm">
+
+      <div class="pt-1 flex items-center gap-3">
+        <button type="submit" class="bg-stone-900 text-white font-medium py-2 px-5 rounded-lg hover:bg-stone-800 transition-colors text-sm">
           Simpan &amp; Upload Foto
         </button>
+        <a href="/admin/produk" class="text-sm text-stone-400 hover:text-stone-600 transition-colors">Batal</a>
       </div>
     </form>
   )}
