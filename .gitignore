@@ -4,3 +4,10 @@ dist/
 .env
 .env.local
 *.local
+.superpowers/
+.claude/
+.astro/
+.playwright-mcp/
+state/
+docs/superpowers/
+v3/
