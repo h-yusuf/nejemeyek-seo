@@ -38,6 +38,9 @@ const waUrl = waNumber ? buildWaOrderUrl({ displayName: product.displayName, qty
   <div class="p-3 flex flex-col gap-1 flex-1">
     <p class="font-semibold text-stone-900 text-sm leading-snug">{product.category.name}</p>
     <p class="text-stone-400 text-xs">{product.variant.label}</p>
+    {product.description && (
+      <p class="text-stone-500 text-xs leading-relaxed line-clamp-2">{product.description}</p>
+    )}
 
     <!-- Price -->
     <div class="mt-auto pt-2">

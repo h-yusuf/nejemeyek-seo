@@ -18,6 +18,7 @@ export interface Product {
   price: number;
   original_price: number | null;
   image_url: string | null;
+  description: string | null;
   is_active: number;
   sort_order: number;
   created_at: string;

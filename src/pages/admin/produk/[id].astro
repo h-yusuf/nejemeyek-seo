@@ -30,6 +30,7 @@ if (Astro.request.method === 'POST') {
     variant_id: form.get('variant_id') as string,
     price: Number(form.get('price')),
     original_price: originalPriceRaw && String(originalPriceRaw).trim() !== '' ? Number(originalPriceRaw) : null,
+    description: form.get('description') ? String(form.get('description')).trim() : null,
     sort_order: Number(form.get('sort_order') ?? 0),
   };
 
@@ -106,6 +107,15 @@ if (Astro.request.method === 'POST') {
             placeholder="Kosongkan jika tidak ada"
           />
         </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-stone-700 mb-1">Deskripsi</label>
+        <textarea
+          name="description"
+          rows="3"
+          class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none"
+          placeholder="Deskripsi singkat produk (opsional)"
+        >{product.description ?? ''}</textarea>
       </div>
       <div>
         <label class="block text-sm font-medium text-stone-700 mb-1">Urutan Tampil</label>

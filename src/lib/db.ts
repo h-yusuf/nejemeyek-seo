@@ -109,6 +109,7 @@ export async function createProduct(
     price: number;
     original_price: number | null;
     image_url: string | null;
+    description: string | null;
     sort_order: number;
   },
 ): Promise<string> {
@@ -116,9 +117,9 @@ export async function createProduct(
   const now = new Date().toISOString();
   await db
     .prepare(
-      'INSERT INTO products (id, category_id, variant_id, price, original_price, image_url, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
+      'INSERT INTO products (id, category_id, variant_id, price, original_price, image_url, description, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
     )
-    .bind(id, data.category_id, data.variant_id, data.price, data.original_price, data.image_url, data.sort_order, now, now)
+    .bind(id, data.category_id, data.variant_id, data.price, data.original_price, data.image_url, data.description, data.sort_order, now, now)
     .run();
   return id;
 }
@@ -126,10 +127,10 @@ export async function createProduct(
 export async function updateProduct(
   db: D1Database,
   id: string,
-  updates: Partial<Pick<Product, 'price' | 'original_price' | 'image_url' | 'is_active' | 'sort_order' | 'category_id' | 'variant_id'>>,
+  updates: Partial<Pick<Product, 'price' | 'original_price' | 'image_url' | 'description' | 'is_active' | 'sort_order' | 'category_id' | 'variant_id'>>,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const ALLOWED_UPDATE_COLUMNS = new Set(['price', 'original_price', 'image_url', 'is_active', 'sort_order', 'category_id', 'variant_id']);
+  const ALLOWED_UPDATE_COLUMNS = new Set(['price', 'original_price', 'image_url', 'description', 'is_active', 'sort_order', 'category_id', 'variant_id']);
   const entries = Object.entries(updates).filter(([k]) => ALLOWED_UPDATE_COLUMNS.has(k));
   if (entries.length === 0) return;
   const setClause = entries.map(([k]) => `${k} = ?`).join(', ');

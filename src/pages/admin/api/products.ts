@@ -12,6 +12,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       price: number;
       original_price?: number | null;
       image_url?: string | null;
+      description?: string | null;
       sort_order?: number;
     };
 
@@ -28,6 +29,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       price: Number(body.price),
       original_price: body.original_price ?? null,
       image_url: body.image_url ?? null,
+      description: body.description ?? null,
       sort_order: Number(body.sort_order ?? 0),
     });
 

@@ -63,6 +63,9 @@ const productSchema = {
       <div>
         <h1 class="text-2xl font-extrabold text-stone-900">{product.category.name}</h1>
         <p class="text-stone-400 text-sm mt-0.5">{product.variant.label}</p>
+        {product.description && (
+          <p class="text-stone-600 text-sm mt-2 leading-relaxed">{product.description}</p>
+        )}
         <div class="mt-2">
           {product.original_price && (
             <p class="text-stone-400 text-sm line-through">{formatRupiah(product.original_price)}</p>
