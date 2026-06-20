@@ -144,3 +144,33 @@ export async function updateProduct(
 export async function deleteProduct(db: D1Database, id: string): Promise<void> {
   await db.prepare('DELETE FROM products WHERE id = ?').bind(id).run();
 }
+
+// ─── Page Views ─────────────────────────────────────────────────────────────
+
+export async function getViewStats(db: D1Database): Promise<{
+  today: number;
+  week: number;
+  topPages: { page: string; total: number }[];
+  daily: { date: string; count: number }[];
+}> {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const weekAgoStr = new Date(Date.now() - 6 * 86400000).toISOString().split('T')[0];
+
+  try {
+    const [todayRes, weekRes, topRes, dailyRes] = await db.batch([
+      db.prepare('SELECT COALESCE(SUM(count), 0) as total FROM page_views WHERE date = ?').bind(todayStr),
+      db.prepare('SELECT COALESCE(SUM(count), 0) as total FROM page_views WHERE date >= ?').bind(weekAgoStr),
+      db.prepare('SELECT page, SUM(count) as total FROM page_views GROUP BY page ORDER BY total DESC LIMIT 8'),
+      db.prepare('SELECT date, SUM(count) as count FROM page_views WHERE date >= ? GROUP BY date ORDER BY date ASC').bind(weekAgoStr),
+    ]);
+
+    return {
+      today: (todayRes as D1Result<{ total: number }>).results[0]?.total ?? 0,
+      week: (weekRes as D1Result<{ total: number }>).results[0]?.total ?? 0,
+      topPages: (topRes as D1Result<{ page: string; total: number }>).results,
+      daily: (dailyRes as D1Result<{ date: string; count: number }>).results,
+    };
+  } catch {
+    return { today: 0, week: 0, topPages: [], daily: [] };
+  }
+}

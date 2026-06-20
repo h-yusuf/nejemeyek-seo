@@ -75,3 +75,7 @@ const localBusinessSchema = {
     </div>
   </body>
 </html>
+
+<script>
+  navigator.sendBeacon?.('/api/track', new URLSearchParams({ page: location.pathname }));
+</script>
