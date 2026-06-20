@@ -7,21 +7,13 @@ interface Props {
 const { categories } = Astro.props;
 ---
 
-<div class="sticky top-0 z-10 bg-stone-50 border-b border-stone-200 px-4 py-3">
-  <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none" id="cat-tabs">
-    <button
-      type="button"
-      data-cat="semua"
-      class="cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-900 text-white"
-    >
+<div class="sticky top-0 z-10 bg-white border-b border-stone-100 px-4 py-3">
+  <div class="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none" id="cat-tabs">
+    <button type="button" data-cat="semua" class="cat-tab cat-active flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold">
       Semua
     </button>
     {categories.map(cat => (
-      <button
-        type="button"
-        data-cat={cat.id}
-        class="cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200"
-      >
+      <button type="button" data-cat={cat.id} class="cat-tab cat-inactive flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium">
         {cat.name}
       </button>
     ))}
@@ -30,21 +22,19 @@ const { categories } = Astro.props;
 
 <script>
   const tabs = document.querySelectorAll<HTMLButtonElement>('.cat-tab');
-  const cards = document.querySelectorAll<HTMLElement>('[data-product-cat]');
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const cat = tab.dataset.cat!;
 
       tabs.forEach(t => {
-        t.className = 'cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200';
+        t.classList.remove('cat-active');
+        t.classList.add('cat-inactive');
       });
-      tab.className = 'cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-900 text-white';
+      tab.classList.remove('cat-inactive');
+      tab.classList.add('cat-active');
 
-      cards.forEach(card => {
-        const show = cat === 'semua' || card.dataset.productCat === cat;
-        card.style.display = show ? '' : 'none';
-      });
+      document.dispatchEvent(new CustomEvent('cat:change', { detail: cat }));
     });
   });
 </script>
@@ -52,4 +42,14 @@ const { categories } = Astro.props;
 <style>
   .scrollbar-none { scrollbar-width: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  .cat-active {
+    background-color: #1c1c1c;
+    color: #ffffff;
+  }
+  .cat-inactive {
+    background-color: #ffffff;
+    color: #57534e;
+    border: 1px solid #e7e5e4;
+  }
 </style>

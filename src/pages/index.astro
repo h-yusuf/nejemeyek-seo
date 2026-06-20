@@ -20,62 +20,94 @@ const [products, categories] = await Promise.all([
   localBusiness={true}
 >
   <!-- Header -->
-  <header class="bg-brand-700 text-white px-4 py-4 flex items-center justify-between">
-    <div>
-      <p class="text-brand-200 text-xs tracking-widest uppercase">Peyek Khas Jogja</p>
-      <h1 class="text-xl font-extrabold">Nejemeyek</h1>
+  <header class="bg-white px-4 pt-5 pb-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <p class="text-stone-400 text-xs">Peyek Khas Jogja</p>
+        <h1 class="text-2xl font-bold text-stone-900 mt-0.5">Nejemeyek</h1>
+      </div>
+      {waNumber && (
+        <a
+          href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Halo Nejemeyek, saya mau tanya produk dan stok yang tersedia')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="shrink-0 flex items-center gap-1.5 text-xs font-medium bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 px-3 py-2 rounded-lg transition-colors mt-1"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.55 4.107 1.512 5.832L.057 23.999l6.304-1.654A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.007-1.371l-.36-.213-3.736.979.999-3.648-.233-.374A9.818 9.818 0 1 1 12 21.818z"/>
+          </svg>
+          Buka WA
+        </a>
+      )}
     </div>
-    {waNumber && (
-      <a
-        href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Halo Nejemeyek, saya mau tanya produk dan stok yang tersedia')}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-xs bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg transition-colors"
-      >
-        Chat WA
-      </a>
-    )}
+
+    <!-- Search -->
+    <div class="relative mt-4">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        type="text"
+        id="search-input"
+        placeholder="Cari menu..."
+        autocomplete="off"
+        class="w-full bg-stone-100 rounded-xl pl-9 pr-4 py-3 text-sm text-stone-900 placeholder-stone-400 outline-none focus:ring-2 focus:ring-stone-300"
+      />
+    </div>
   </header>
 
   <!-- Category tabs -->
   <CategoryTabs categories={categories} />
 
   <!-- Product grid -->
-  <section class="px-4 py-4">
-    {products.length === 0 ? (
-      <div class="text-center py-16 text-stone-400">
-        <p class="text-4xl mb-3">🫘</p>
-        <p>Produk segera hadir...</p>
-      </div>
-    ) : (
-      <div class="grid grid-cols-2 gap-3">
-        {products.map(product => (
+  <section class="px-3 py-3">
+    <div id="product-grid" class="grid grid-cols-2 gap-3">
+      {products.length === 0 ? (
+        <div class="col-span-2 text-center py-16 text-stone-400">
+          <p class="text-sm">Produk segera hadir...</p>
+        </div>
+      ) : (
+        products.map(product => (
           <ProductCard product={product} waNumber={waNumber} />
-        ))}
-      </div>
-    )}
-  </section>
-
-  <!-- How to order -->
-  <section class="mx-4 my-6 bg-brand-50 rounded-2xl p-4">
-    <p class="font-semibold text-brand-900 mb-3 text-sm">Cara Pesan</p>
-    <div class="space-y-2 text-sm text-stone-600">
-      <div class="flex items-center gap-3">
-        <span class="text-xl">🛒</span>
-        <span>Pilih produk, klik Pesan</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="text-xl">💬</span>
-        <span>Chat konfirmasi via WhatsApp</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <span class="text-xl">🛵</span>
-        <span>Kirim GoSend / COD Yogyakarta</span>
-      </div>
+        ))
+      )}
     </div>
+    <p id="empty-search" class="hidden text-center py-12 text-stone-400 text-sm col-span-2">
+      Tidak ada produk yang cocok
+    </p>
   </section>
 
-  <footer class="text-center text-stone-400 text-xs py-6 border-t border-stone-100">
+  <footer class="text-center text-stone-400 text-xs py-8 border-t border-stone-200 mt-2">
     &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
   </footer>
 </BaseLayout>
+
+<script>
+  let activeCat = 'semua';
+  let searchText = '';
+
+  function applyFilter() {
+    const cards = document.querySelectorAll<HTMLElement>('[data-product-cat]');
+    let visibleCount = 0;
+    cards.forEach(card => {
+      const catMatch = activeCat === 'semua' || card.dataset.productCat === activeCat;
+      const nameMatch = !searchText || (card.dataset.productName ?? '').includes(searchText);
+      const show = catMatch && nameMatch;
+      card.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
+    });
+    const emptyMsg = document.getElementById('empty-search');
+    if (emptyMsg) emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  document.getElementById('search-input')?.addEventListener('input', e => {
+    searchText = (e.target as HTMLInputElement).value.toLowerCase().trim();
+    applyFilter();
+  });
+
+  document.addEventListener('cat:change', (e: Event) => {
+    activeCat = (e as CustomEvent<string>).detail;
+    applyFilter();
+  });
+</script>

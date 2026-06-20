@@ -58,6 +58,9 @@ const localBusinessSchema = {
     <meta name="twitter:card" content="summary_large_image" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
     {localBusiness && (
       <script is:inline type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
@@ -66,7 +69,9 @@ const localBusinessSchema = {
       <script is:inline type="application/ld+json" set:html={JSON.stringify(productSchema)} />
     )}
   </head>
-  <body class="bg-stone-50 text-stone-900 font-sans">
-    <slot />
+  <body class="bg-stone-100 text-stone-900 font-sans">
+    <div class="max-w-[560px] mx-auto bg-stone-50 min-h-screen">
+      <slot />
+    </div>
   </body>
 </html>
