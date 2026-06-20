@@ -20,6 +20,7 @@ const productSchema = {
   '@type': 'Product',
   name: product.displayName,
   image: product.image_url ?? '',
+  description: product.description ?? undefined,
   brand: { '@type': 'Brand', name: 'Nejemeyek' },
   offers: {
     '@type': 'Offer',
