@@ -1,0 +1,72 @@
+---
+export const prerender = false;
+import { hashPassword } from '../../lib/auth';
+
+const env = Astro.locals.runtime?.env;
+const adminPassword = env?.ADMIN_PASSWORD;
+
+const next = Astro.url.searchParams.get('next') ?? '/admin';
+
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const password = String(form.get('password') ?? '');
+
+  if (adminPassword && password === adminPassword) {
+    const hash = await hashPassword(adminPassword);
+    const isSecure = Astro.url.protocol === 'https:';
+    Astro.cookies.set('admin_session', hash, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/admin',
+    });
+    return Astro.redirect(next);
+  }
+
+  error = 'Password salah';
+}
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login — Nejemeyek Admin</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #f5f5f4; color: #1c1917; min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+      .card { background: #fff; border: 1px solid #e7e5e4; border-radius: 1rem; padding: 2rem; width: 100%; max-width: 360px; }
+      .brand { font-weight: 600; font-size: 1rem; margin-bottom: 1.5rem; color: #1c1917; }
+      .brand span { color: #a8a29e; font-weight: 400; font-size: 0.875rem; }
+      label { display: block; font-size: 0.875rem; font-weight: 500; color: #44403c; margin-bottom: 0.375rem; }
+      input[type="password"] { width: 100%; border: 1px solid #d6d3d1; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: inherit; outline: none; }
+      input[type="password"]:focus { border-color: #78716c; }
+      .error { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 0.5rem; padding: 0.625rem 0.875rem; font-size: 0.875rem; margin-bottom: 1rem; }
+      button { width: 100%; background: #1c1917; color: #fff; font-family: inherit; font-size: 0.875rem; font-weight: 600; border: none; border-radius: 0.5rem; padding: 0.625rem 1rem; cursor: pointer; margin-top: 1rem; }
+      button:hover { background: #292524; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <p class="brand">Nejemeyek <span>Admin</span></p>
+
+      {error && <div class="error">{error}</div>}
+
+      <form method="POST">
+        <div style="margin-bottom: 1.25rem;">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autofocus />
+        </div>
+        <button type="submit">Masuk</button>
+      </form>
+    </div>
+  </body>
+</html>

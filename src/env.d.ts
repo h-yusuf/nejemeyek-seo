@@ -12,6 +12,7 @@ interface Env {
   MINIO_SECRET_KEY: string;
   WA_NUMBER: string;
   CF_PAGES_WEBHOOK: string;
+  ADMIN_PASSWORD: string;
 }
 
 declare namespace App {
