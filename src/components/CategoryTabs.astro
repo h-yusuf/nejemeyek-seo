@@ -1,0 +1,55 @@
+---
+import type { Category } from '../types';
+
+interface Props {
+  categories: Category[];
+}
+const { categories } = Astro.props;
+---
+
+<div class="sticky top-0 z-10 bg-stone-50 border-b border-stone-200 px-4 py-3">
+  <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none" id="cat-tabs">
+    <button
+      type="button"
+      data-cat="semua"
+      class="cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-900 text-white"
+    >
+      Semua
+    </button>
+    {categories.map(cat => (
+      <button
+        type="button"
+        data-cat={cat.id}
+        class="cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200"
+      >
+        {cat.name}
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.cat-tab');
+  const cards = document.querySelectorAll<HTMLElement>('[data-product-cat]');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const cat = tab.dataset.cat!;
+
+      tabs.forEach(t => {
+        t.className = 'cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200';
+      });
+      tab.className = 'cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-900 text-white';
+
+      cards.forEach(card => {
+        const show = cat === 'semua' || card.dataset.productCat === cat;
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+
+<style>
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+</style>

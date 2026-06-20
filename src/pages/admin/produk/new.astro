@@ -1,0 +1,117 @@
+---
+export const prerender = false;
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getCategories, getVariants, createProduct } from '../../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const [categories, variants] = await Promise.all([getCategories(db), getVariants(db)]);
+
+let error = '';
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const originalPriceRaw = form.get('original_price');
+
+  let body: Record<string, unknown>;
+  try {
+    body = {
+      category_id: form.get('category_id'),
+      variant_id: form.get('variant_id'),
+      price: Number(form.get('price')),
+      original_price: originalPriceRaw && String(originalPriceRaw).trim() !== '' ? Number(originalPriceRaw) : null,
+      sort_order: Number(form.get('sort_order') ?? 0),
+    };
+  } catch {
+    error = 'Data tidak valid';
+    body = {};
+  }
+
+  if (!error) {
+    try {
+      const newId = await createProduct(db, {
+        category_id: body.category_id as string,
+        variant_id: body.variant_id as string,
+        price: body.price as number,
+        original_price: body.original_price as number | null,
+        image_url: null,
+        sort_order: body.sort_order as number,
+      });
+      const webhook = Astro.locals.runtime.env.CF_PAGES_WEBHOOK;
+      if (webhook) fetch(webhook, { method: 'POST' }).catch(() => {});
+      return Astro.redirect(`/admin/produk/${newId}`);
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : 'Gagal menyimpan produk';
+    }
+  }
+}
+---
+
+<AdminLayout title="Tambah Produk">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/admin/produk" class="text-stone-500 hover:text-stone-700 text-sm">&#8592; Kembali</a>
+    <h1 class="text-2xl font-bold">Tambah Produk</h1>
+  </div>
+
+  {error && (
+    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">{error}</div>
+  )}
+
+  {categories.length === 0 || variants.length === 0 ? (
+    <div class="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-4 py-3 text-sm">
+      Tambah <a href="/admin/master" class="underline font-medium">kategori dan variant</a> dulu sebelum membuat produk.
+    </div>
+  ) : (
+    <form method="POST" class="bg-white rounded-xl p-6 shadow-sm space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1">Kategori *</label>
+          <select name="category_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+            {categories.map(c => <option value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1">Variant *</label>
+          <select name="variant_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
+            {variants.map(v => <option value={v.id}>{v.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Jual (Rp) *</label>
+          <input
+            type="number"
+            name="price"
+            required
+            min="1"
+            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+            placeholder="25000"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Coret (Rp)</label>
+          <input
+            type="number"
+            name="original_price"
+            min="1"
+            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+            placeholder="30000 (opsional)"
+          />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-stone-700 mb-1">Urutan Tampil</label>
+        <input
+          type="number"
+          name="sort_order"
+          value="0"
+          class="w-32 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+        />
+      </div>
+      <div class="pt-2">
+        <button type="submit" class="bg-brand-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-brand-700 text-sm">
+          Simpan &amp; Upload Foto
+        </button>
+      </div>
+    </form>
+  )}
+</AdminLayout>

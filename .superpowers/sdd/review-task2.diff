@@ -1,0 +1,265 @@
+# Review package: f84ea64..aad0c85
+
+## Commits
+aad0c85 feat: D1 schema + types + db query library
+
+## Files changed
+ src/lib/db.test.ts             |  31 +++++++++
+ src/lib/db.ts                  | 141 +++++++++++++++++++++++++++++++++++++++++
+ src/migrations/001_initial.sql |  25 ++++++++
+ src/types.ts                   |  31 +++++++++
+ 4 files changed, 228 insertions(+)
+
+## Diff
+diff --git a/src/lib/db.test.ts b/src/lib/db.test.ts
+new file mode 100644
+index 0000000..09d7db0
+--- /dev/null
++++ b/src/lib/db.test.ts
+@@ -0,0 +1,31 @@
++import { describe, it, expect, vi } from 'vitest';
++import { getActiveProducts, getCategoryById } from './db';
++
++function makeDb(firstResult: unknown = null, allResults: unknown[] = []) {
++  return {
++    prepare: vi.fn().mockReturnThis(),
++    bind: vi.fn().mockReturnThis(),
++    first: vi.fn().mockResolvedValue(firstResult),
++    all: vi.fn().mockResolvedValue({ results: allResults }),
++    run: vi.fn().mockResolvedValue({}),
++    batch: vi.fn().mockResolvedValue([
++      { results: allResults },
++      { results: [] },
++    ]),
++  } as unknown as D1Database;
++}
++
++describe('getCategoryById', () => {
++  it('returns category when found', async () => {
++    const cat = { id: 'peyek-rebon', name: 'Peyek Rebon', sort_order: 0, created_at: '' };
++    const db = makeDb(cat);
++    const result = await getCategoryById(db, 'peyek-rebon');
++    expect(result).toEqual(cat);
++  });
++
++  it('returns null when not found', async () => {
++    const db = makeDb(null);
++    const result = await getCategoryById(db, 'not-exist');
++    expect(result).toBeNull();
++  });
++});
+diff --git a/src/lib/db.ts b/src/lib/db.ts
+new file mode 100644
+index 0000000..f22f4be
+--- /dev/null
++++ b/src/lib/db.ts
+@@ -0,0 +1,141 @@
++import type { Category, ProductVariant, Product, ProductWithDetails } from '../types';
++
++// ─── Categories ────────────────────────────────────────────────────────────
++
++export async function getCategories(db: D1Database): Promise<Category[]> {
++  const r = await db
++    .prepare('SELECT * FROM categories ORDER BY sort_order ASC, name ASC')
++    .all<Category>();
++  return r.results;
++}
++
++export async function getCategoryById(db: D1Database, id: string): Promise<Category | null> {
++  return db.prepare('SELECT * FROM categories WHERE id = ?').bind(id).first<Category>() ?? null;
++}
++
++export async function createCategory(
++  db: D1Database,
++  data: { id: string; name: string; sort_order: number },
++): Promise<void> {
++  const now = new Date().toISOString();
++  await db
++    .prepare('INSERT INTO categories (id, name, sort_order, created_at) VALUES (?, ?, ?, ?)')
++    .bind(data.id, data.name, data.sort_order, now)
++    .run();
++}
++
++export async function deleteCategory(db: D1Database, id: string): Promise<void> {
++  await db.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
++}
++
++// ─── Product Variants ───────────────────────────────────────────────────────
++
++export async function getVariants(db: D1Database): Promise<ProductVariant[]> {
++  const r = await db
++    .prepare('SELECT * FROM product_variants ORDER BY sort_order ASC, label ASC')
++    .all<ProductVariant>();
++  return r.results;
++}
++
++export async function createVariant(
++  db: D1Database,
++  data: { label: string; sort_order: number },
++): Promise<void> {
++  const id = crypto.randomUUID();
++  await db
++    .prepare('INSERT INTO product_variants (id, label, sort_order) VALUES (?, ?, ?)')
++    .bind(id, data.label, data.sort_order)
++    .run();
++}
++
++export async function deleteVariant(db: D1Database, id: string): Promise<void> {
++  await db.prepare('DELETE FROM product_variants WHERE id = ?').bind(id).run();
++}
++
++// ─── Products ───────────────────────────────────────────────────────────────
++
++async function attachDetails(db: D1Database, products: Product[]): Promise<ProductWithDetails[]> {
++  if (products.length === 0) return [];
++
++  const [catsResult, varsResult] = await db.batch([
++    db.prepare('SELECT * FROM categories'),
++    db.prepare('SELECT * FROM product_variants'),
++  ]);
++
++  const cats = new Map((catsResult as D1Result<Category>).results.map(c => [c.id, c]));
++  const vars = new Map((varsResult as D1Result<ProductVariant>).results.map(v => [v.id, v]));
++
++  return products.map(p => {
++    const category = cats.get(p.category_id)!;
++    const variant = vars.get(p.variant_id)!;
++    return {
++      ...p,
++      category,
++      variant,
++      displayName: `${category.name} ${variant.label}`,
++    };
++  });
++}
++
++export async function getActiveProducts(db: D1Database): Promise<ProductWithDetails[]> {
++  const r = await db
++    .prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY sort_order ASC, created_at DESC')
++    .all<Product>();
++  return attachDetails(db, r.results);
++}
++
++export async function getAllProducts(db: D1Database): Promise<ProductWithDetails[]> {
++  const r = await db
++    .prepare('SELECT * FROM products ORDER BY sort_order ASC, created_at DESC')
++    .all<Product>();
++  return attachDetails(db, r.results);
++}
++
++export async function getProductById(db: D1Database, id: string): Promise<ProductWithDetails | null> {
++  const p = await db.prepare('SELECT * FROM products WHERE id = ?').bind(id).first<Product>();
++  if (!p) return null;
++  const [details] = await attachDetails(db, [p]);
++  return details ?? null;
++}
++
++export async function createProduct(
++  db: D1Database,
++  data: {
++    category_id: string;
++    variant_id: string;
++    price: number;
++    original_price: number | null;
++    image_url: string | null;
++    sort_order: number;
++  },
++): Promise<string> {
++  const id = crypto.randomUUID();
++  const now = new Date().toISOString();
++  await db
++    .prepare(
++      'INSERT INTO products (id, category_id, variant_id, price, original_price, image_url, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
++    )
++    .bind(id, data.category_id, data.variant_id, data.price, data.original_price, data.image_url, data.sort_order, now, now)
++    .run();
++  return id;
++}
++
++export async function updateProduct(
++  db: D1Database,
++  id: string,
++  updates: Partial<Pick<Product, 'price' | 'original_price' | 'image_url' | 'is_active' | 'sort_order' | 'category_id' | 'variant_id'>>,
++): Promise<void> {
++  const now = new Date().toISOString();
++  const entries = Object.entries(updates);
++  if (entries.length === 0) return;
++  const setClause = entries.map(([k]) => `${k} = ?`).join(', ');
++  const values = [...entries.map(([, v]) => v), now, id];
++  await db
++    .prepare(`UPDATE products SET ${setClause}, updated_at = ? WHERE id = ?`)
++    .bind(...values)
++    .run();
++}
++
++export async function deleteProduct(db: D1Database, id: string): Promise<void> {
++  await db.prepare('DELETE FROM products WHERE id = ?').bind(id).run();
++}
+diff --git a/src/migrations/001_initial.sql b/src/migrations/001_initial.sql
+new file mode 100644
+index 0000000..b45789a
+--- /dev/null
++++ b/src/migrations/001_initial.sql
+@@ -0,0 +1,25 @@
++CREATE TABLE IF NOT EXISTS categories (
++  id         TEXT PRIMARY KEY,
++  name       TEXT NOT NULL,
++  sort_order INTEGER NOT NULL DEFAULT 0,
++  created_at TEXT NOT NULL
++);
++
++CREATE TABLE IF NOT EXISTS product_variants (
++  id         TEXT PRIMARY KEY,
++  label      TEXT NOT NULL,
++  sort_order INTEGER NOT NULL DEFAULT 0
++);
++
++CREATE TABLE IF NOT EXISTS products (
++  id             TEXT PRIMARY KEY,
++  category_id    TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
++  variant_id     TEXT NOT NULL REFERENCES product_variants(id) ON DELETE CASCADE,
++  price          INTEGER NOT NULL,
++  original_price INTEGER,
++  image_url      TEXT,
++  is_active      INTEGER NOT NULL DEFAULT 1,
++  sort_order     INTEGER NOT NULL DEFAULT 0,
++  created_at     TEXT NOT NULL,
++  updated_at     TEXT NOT NULL
++);
+diff --git a/src/types.ts b/src/types.ts
+new file mode 100644
+index 0000000..3c2810e
+--- /dev/null
++++ b/src/types.ts
+@@ -0,0 +1,31 @@
++export interface Category {
++  id: string;
++  name: string;
++  sort_order: number;
++  created_at: string;
++}
++
++export interface ProductVariant {
++  id: string;
++  label: string;
++  sort_order: number;
++}
++
++export interface Product {
++  id: string;
++  category_id: string;
++  variant_id: string;
++  price: number;
++  original_price: number | null;
++  image_url: string | null;
++  is_active: number;
++  sort_order: number;
++  created_at: string;
++  updated_at: string;
++}
++
++export interface ProductWithDetails extends Product {
++  category: Category;
++  variant: ProductVariant;
++  displayName: string; // "${category.name} ${variant.label}"
++}

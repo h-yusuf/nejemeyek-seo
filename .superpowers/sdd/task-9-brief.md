@@ -1,0 +1,253 @@
+### Task 9: Admin Master Page (Kategori + Variant Tabs)
+
+**Files:**
+- Create: `src/pages/admin/master.astro`
+
+**Interfaces:**
+- Consumes: `getCategories(db)`, `getVariants(db)`
+- Produces: SSR page at `/admin/master` with two tabs — Kategori and Variant
+
+- [ ] **Step 1: Write `src/pages/admin/master.astro`**
+
+```astro
+---
+export const prerender = false;
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { getCategories, getVariants } from '../../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const [categories, variants] = await Promise.all([
+  getCategories(db),
+  getVariants(db),
+]);
+---
+
+<AdminLayout title="Master Data">
+  <h1 class="text-2xl font-bold mb-6">Master Data</h1>
+
+  <!-- Tabs -->
+  <div class="flex border-b border-stone-200 mb-6">
+    <button
+      type="button"
+      id="tab-kategori"
+      class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-brand-600 text-brand-700 -mb-px"
+    >
+      Kategori
+    </button>
+    <button
+      type="button"
+      id="tab-variant"
+      class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-700 -mb-px"
+    >
+      Variant
+    </button>
+  </div>
+
+  <!-- Kategori panel -->
+  <div id="panel-kategori" class="space-y-4">
+    <div class="space-y-2">
+      {categories.map(cat => (
+        <div class="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="font-medium text-stone-900">{cat.name}</p>
+            <p class="text-xs text-stone-400">/{cat.id}</p>
+          </div>
+          <button
+            type="button"
+            class="text-sm text-red-500 hover:text-red-700 delete-cat-btn"
+            data-id={cat.id}
+            data-name={cat.name}
+          >
+            Hapus
+          </button>
+        </div>
+      ))}
+    </div>
+
+    <!-- Add category form -->
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+      <p class="font-medium text-stone-700 mb-3 text-sm">Tambah Kategori</p>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          id="new-cat-name"
+          placeholder="Peyek Rebon"
+          class="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+        />
+        <input
+          type="number"
+          id="new-cat-order"
+          placeholder="Urutan"
+          value="0"
+          class="w-24 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+        />
+        <button
+          type="button"
+          id="add-cat-btn"
+          class="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700"
+        >
+          Tambah
+        </button>
+      </div>
+      <p id="cat-error" class="text-red-500 text-xs mt-2 hidden"></p>
+    </div>
+  </div>
+
+  <!-- Variant panel (hidden by default) -->
+  <div id="panel-variant" class="space-y-4 hidden">
+    <div class="space-y-2">
+      {variants.map(v => (
+        <div class="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between">
+          <p class="font-medium text-stone-900">{v.label}</p>
+          <button
+            type="button"
+            class="text-sm text-red-500 hover:text-red-700 delete-var-btn"
+            data-id={v.id}
+            data-label={v.label}
+          >
+            Hapus
+          </button>
+        </div>
+      ))}
+    </div>
+
+    <!-- Add variant form -->
+    <div class="bg-white rounded-xl p-4 shadow-sm">
+      <p class="font-medium text-stone-700 mb-3 text-sm">Tambah Variant</p>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          id="new-var-label"
+          placeholder="250 gram"
+          class="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
+        />
+        <button
+          type="button"
+          id="add-var-btn"
+          class="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700"
+        >
+          Tambah
+        </button>
+      </div>
+      <p id="var-error" class="text-red-500 text-xs mt-2 hidden"></p>
+    </div>
+  </div>
+</AdminLayout>
+
+<script>
+  // Tabs
+  const tabKat = document.getElementById('tab-kategori')!;
+  const tabVar = document.getElementById('tab-variant')!;
+  const panelKat = document.getElementById('panel-kategori')!;
+  const panelVar = document.getElementById('panel-variant')!;
+
+  const activeTabClass = 'tab-btn px-4 py-2 text-sm font-medium border-b-2 border-brand-600 text-brand-700 -mb-px';
+  const inactiveTabClass = 'tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-700 -mb-px';
+
+  tabKat.addEventListener('click', () => {
+    tabKat.className = activeTabClass; tabVar.className = inactiveTabClass;
+    panelKat.classList.remove('hidden'); panelVar.classList.add('hidden');
+  });
+
+  tabVar.addEventListener('click', () => {
+    tabVar.className = activeTabClass; tabKat.className = inactiveTabClass;
+    panelVar.classList.remove('hidden'); panelKat.classList.add('hidden');
+  });
+
+  // Add category
+  document.getElementById('add-cat-btn')?.addEventListener('click', async () => {
+    const name = (document.getElementById('new-cat-name') as HTMLInputElement).value.trim();
+    const sort_order = Number((document.getElementById('new-cat-order') as HTMLInputElement).value);
+    const errEl = document.getElementById('cat-error')!;
+
+    if (!name) { errEl.textContent = 'Nama wajib diisi'; errEl.classList.remove('hidden'); return; }
+
+    const res = await fetch('/admin/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, sort_order }),
+    });
+
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const { error } = await res.json() as { error: string };
+      errEl.textContent = error; errEl.classList.remove('hidden');
+    }
+  });
+
+  // Delete category
+  document.querySelectorAll('.delete-cat-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const el = btn as HTMLButtonElement;
+      if (!confirm(`Hapus kategori "${el.dataset.name}"? Semua produk dalam kategori ini juga akan terhapus.`)) return;
+
+      await fetch('/admin/api/categories', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: el.dataset.id }),
+      });
+      window.location.reload();
+    });
+  });
+
+  // Add variant
+  document.getElementById('add-var-btn')?.addEventListener('click', async () => {
+    const label = (document.getElementById('new-var-label') as HTMLInputElement).value.trim();
+    const errEl = document.getElementById('var-error')!;
+
+    if (!label) { errEl.textContent = 'Label wajib diisi'; errEl.classList.remove('hidden'); return; }
+
+    const res = await fetch('/admin/api/variants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label }),
+    });
+
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const { error } = await res.json() as { error: string };
+      errEl.textContent = error; errEl.classList.remove('hidden');
+    }
+  });
+
+  // Delete variant
+  document.querySelectorAll('.delete-var-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const el = btn as HTMLButtonElement;
+      if (!confirm(`Hapus variant "${el.dataset.label}"?`)) return;
+
+      await fetch('/admin/api/variants', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: el.dataset.id }),
+      });
+      window.location.reload();
+    });
+  });
+</script>
+```
+
+- [ ] **Step 2: Verify**
+
+```bash
+npx astro dev
+```
+
+Open `http://localhost:4321/admin/master`. Verify:
+- Two tabs: Kategori and Variant
+- Click tab switches panel without page reload
+- Add kategori → appears in list on reload
+- Delete kategori → confirm dialog, then removed
+- Add/delete variant same pattern
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/pages/admin/master.astro
+git commit -m "feat: admin master page with kategori + variant tabs"
+```
+
+---
+

@@ -1,0 +1,174 @@
+# Review package: aad0c85..858ad40
+
+## Commits
+858ad40 feat: storage + WA utilities with tests
+
+## Files changed
+ docs/minio-cors-setup.md | 32 ++++++++++++++++++++++++++++++++
+ src/lib/storage.ts       | 48 ++++++++++++++++++++++++++++++++++++++++++++++++
+ src/lib/wa.test.ts       | 33 +++++++++++++++++++++++++++++++++
+ src/lib/wa.ts            | 24 ++++++++++++++++++++++++
+ 4 files changed, 137 insertions(+)
+
+## Diff
+diff --git a/docs/minio-cors-setup.md b/docs/minio-cors-setup.md
+new file mode 100644
+index 0000000..3e1461c
+--- /dev/null
++++ b/docs/minio-cors-setup.md
+@@ -0,0 +1,32 @@
++# MinIO CORS Setup
++
++Run these commands on the VPS after MinIO is running.
++
++## 1. Configure mc alias
++
++```bash
++mc alias set myminio https://minio.yourserver.com ACCESSKEY SECRETKEY
++```
++
++## 2. Set bucket to allow public downloads
++
++```bash
++mc anonymous set download myminio/nejemeyek
++```
++
++## 3. Create cors.json
++
++```json
++[{
++  "AllowedHeaders": ["*"],
++  "AllowedMethods": ["GET", "PUT"],
++  "AllowedOrigins": ["https://nejemeyekjogja.com", "http://localhost:4321"],
++  "ExposeHeaders": ["ETag"]
++}]
++```
++
++## 4. Apply CORS policy
++
++```bash
++mc cors set myminio/nejemeyek cors.json
++```
+diff --git a/src/lib/storage.ts b/src/lib/storage.ts
+new file mode 100644
+index 0000000..fbaa1cf
+--- /dev/null
++++ b/src/lib/storage.ts
+@@ -0,0 +1,48 @@
++import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
++import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
++
++export interface StorageConfig {
++  endpoint: string;
++  bucket: string;
++  accessKey: string;
++  secretKey: string;
++}
++
++function createClient(config: StorageConfig): S3Client {
++  return new S3Client({
++    endpoint: config.endpoint,
++    region: 'us-east-1',
++    credentials: {
++      accessKeyId: config.accessKey,
++      secretAccessKey: config.secretKey,
++    },
++    forcePathStyle: true,
++  });
++}
++
++export async function getPresignedUploadUrl(
++  config: StorageConfig,
++  key: string,
++  contentType: string,
++): Promise<string> {
++  const client = createClient(config);
++  const command = new PutObjectCommand({
++    Bucket: config.bucket,
++    Key: key,
++    ContentType: contentType,
++  });
++  return getSignedUrl(client, command, { expiresIn: 300 });
++}
++
++export function getPublicUrl(config: StorageConfig, key: string): string {
++  return `${config.endpoint}/${config.bucket}/${key}`;
++}
++
++export async function deleteObject(config: StorageConfig, key: string): Promise<void> {
++  const client = createClient(config);
++  await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
++}
++
++export function keyFromUrl(url: string, endpoint: string, bucket: string): string {
++  return url.replace(`${endpoint}/${bucket}/`, '');
++}
+diff --git a/src/lib/wa.test.ts b/src/lib/wa.test.ts
+new file mode 100644
+index 0000000..ffbd763
+--- /dev/null
++++ b/src/lib/wa.test.ts
+@@ -0,0 +1,33 @@
++import { describe, it, expect } from 'vitest';
++import { buildWaOrderUrl, formatRupiah, slugify } from './wa';
++
++describe('buildWaOrderUrl', () => {
++  it('builds WA URL with pre-filled message', () => {
++    const url = buildWaOrderUrl({
++      displayName: 'Peyek Rebon 250gr',
++      qty: 2,
++      waNumber: '6281234567890',
++    });
++    expect(url).toContain('https://wa.me/6281234567890');
++    expect(url).toContain(encodeURIComponent('Peyek Rebon 250gr'));
++    expect(url).toContain(encodeURIComponent('x2'));
++  });
++});
++
++describe('formatRupiah', () => {
++  it('formats to Indonesian Rupiah', () => {
++    expect(formatRupiah(25000)).toBe('Rp 25.000');
++  });
++});
++
++describe('slugify', () => {
++  it('converts to URL-safe slug', () => {
++    expect(slugify('Peyek Rebon')).toBe('peyek-rebon');
++  });
++  it('strips special characters', () => {
++    expect(slugify('Peyek & Teri!')).toBe('peyek-teri');
++  });
++  it('collapses hyphens', () => {
++    expect(slugify('peyek--kacang')).toBe('peyek-kacang');
++  });
++});
+diff --git a/src/lib/wa.ts b/src/lib/wa.ts
+new file mode 100644
+index 0000000..3252b55
+--- /dev/null
++++ b/src/lib/wa.ts
+@@ -0,0 +1,24 @@
++export interface WaOrderParams {
++  displayName: string;
++  qty: number;
++  waNumber: string;
++}
++
++export function buildWaOrderUrl(params: WaOrderParams): string {
++  const message = `Halo, saya mau pesan:\n- ${params.displayName} x${params.qty}\nApakah stok tersedia?`;
++  return `https://wa.me/${params.waNumber}?text=${encodeURIComponent(message)}`;
++}
++
++export function formatRupiah(price: number): string {
++  const formatted = price.toLocaleString('id-ID');
++  return `Rp ${formatted}`;
++}
++
++export function slugify(text: string): string {
++  return text
++    .toLowerCase()
++    .replace(/[^a-z0-9\s-]/g, '')
++    .replace(/\s+/g, '-')
++    .replace(/-+/g, '-')
++    .trim();
++}

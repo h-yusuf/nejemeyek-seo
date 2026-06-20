@@ -1,0 +1,72 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  ogImage?: string;
+  canonicalUrl?: string;
+  isProductPage?: boolean;
+  productSchema?: Record<string, unknown>;
+  localBusiness?: boolean;
+}
+
+const {
+  title,
+  description,
+  ogImage = '/og-default.jpg',
+  canonicalUrl = Astro.url.href,
+  localBusiness = false,
+  productSchema,
+} = Astro.props;
+
+const waNumber = Astro.locals.runtime?.env?.WA_NUMBER ?? '';
+const phoneNumber = waNumber ? '+62' + waNumber.slice(2) : '';
+
+const localBusinessSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'Nejemeyek',
+  description: 'Peyek khas Jogja, dibuat dengan resep tradisional.',
+  url: Astro.site?.toString() ?? '',
+  telephone: phoneNumber,
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Yogyakarta',
+    addressRegion: 'DIY',
+    addressCountry: 'ID',
+  },
+  areaServed: 'Yogyakarta',
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="id_ID" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    {localBusiness && (
+      <script is:inline type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
+    )}
+    {productSchema && (
+      <script is:inline type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+    )}
+  </head>
+  <body class="bg-stone-50 text-stone-900 font-sans">
+    <slot />
+  </body>
+</html>

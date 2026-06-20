@@ -1,0 +1,81 @@
+---
+export const prerender = false;
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CategoryTabs from '../components/CategoryTabs.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { getAllProducts, getCategories } from '../lib/db';
+
+const db = Astro.locals.runtime.env.DB;
+const waNumber = Astro.locals.runtime.env.WA_NUMBER || '';
+
+const [products, categories] = await Promise.all([
+  getAllProducts(db),
+  getCategories(db),
+]);
+---
+
+<BaseLayout
+  title="Nejemeyek — Peyek Khas Jogja | Peyek Rebon, Kacang, Teri Jogja"
+  description="Peyek khas Jogja — Peyek Rebon, Peyek Kacang, Peyek Teri. Dibuat dengan resep tradisional. Pesan via WhatsApp, kirim GoSend atau COD area Yogyakarta."
+  localBusiness={true}
+>
+  <!-- Header -->
+  <header class="bg-brand-700 text-white px-4 py-4 flex items-center justify-between">
+    <div>
+      <p class="text-brand-200 text-xs tracking-widest uppercase">Peyek Khas Jogja</p>
+      <h1 class="text-xl font-extrabold">Nejemeyek</h1>
+    </div>
+    {waNumber && (
+      <a
+        href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Halo Nejemeyek, saya mau tanya produk dan stok yang tersedia')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-xs bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg transition-colors"
+      >
+        Chat WA
+      </a>
+    )}
+  </header>
+
+  <!-- Category tabs -->
+  <CategoryTabs categories={categories} />
+
+  <!-- Product grid -->
+  <section class="px-4 py-4">
+    {products.length === 0 ? (
+      <div class="text-center py-16 text-stone-400">
+        <p class="text-4xl mb-3">🫘</p>
+        <p>Produk segera hadir...</p>
+      </div>
+    ) : (
+      <div class="grid grid-cols-2 gap-3">
+        {products.map(product => (
+          <ProductCard product={product} waNumber={waNumber} />
+        ))}
+      </div>
+    )}
+  </section>
+
+  <!-- How to order -->
+  <section class="mx-4 my-6 bg-brand-50 rounded-2xl p-4">
+    <p class="font-semibold text-brand-900 mb-3 text-sm">Cara Pesan</p>
+    <div class="space-y-2 text-sm text-stone-600">
+      <div class="flex items-center gap-3">
+        <span class="text-xl">🛒</span>
+        <span>Pilih produk, klik Pesan</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xl">💬</span>
+        <span>Chat konfirmasi via WhatsApp</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xl">🛵</span>
+        <span>Kirim GoSend / COD Yogyakarta</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="text-center text-stone-400 text-xs py-6 border-t border-stone-100">
+    &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
+  </footer>
+</BaseLayout>

@@ -1,0 +1,116 @@
+---
+interface Props {
+  productId: string;
+  currentImageUrl: string | null;
+}
+const { productId, currentImageUrl } = Astro.props;
+---
+
+<div class="space-y-3">
+  <p class="text-sm font-medium text-stone-700">Foto Produk</p>
+
+  {currentImageUrl && (
+    <div class="relative w-32 h-32 rounded-xl overflow-hidden bg-stone-100 group">
+      <img src={currentImageUrl} alt="Foto produk" class="w-full h-full object-cover" />
+      <button
+        type="button"
+        id="delete-image-btn"
+        data-product-id={productId}
+        data-image-url={currentImageUrl}
+        class="absolute top-1 right-1 bg-red-500 text-white text-xs w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+      >
+        &times;
+      </button>
+    </div>
+  )}
+
+  <div>
+    <input
+      type="file"
+      id="image-input"
+      accept="image/jpeg,image/png,image/webp"
+      data-product-id={productId}
+      class="text-sm text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
+    />
+    <p id="upload-status" class="text-xs text-stone-400 mt-1"></p>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('image-input') as HTMLInputElement;
+  const statusEl = document.getElementById('upload-status')!;
+
+  input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const productId = input.dataset.productId!;
+    statusEl.textContent = 'Mengupload...';
+    statusEl.className = 'text-xs text-stone-400 mt-1';
+
+    try {
+      const params = new URLSearchParams({
+        filename: file.name,
+        contentType: file.type,
+        productId,
+      });
+      const res = await fetch(`/admin/api/images?${params}`);
+      if (!res.ok) {
+        statusEl.textContent = 'Gagal mendapatkan URL upload';
+        statusEl.className = 'text-xs text-red-500 mt-1';
+        return;
+      }
+
+      const { presignedUrl, publicUrl } = await res.json() as { presignedUrl: string; publicUrl: string };
+
+      const uploadRes = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'Content-Type': file.type },
+      });
+      if (!uploadRes.ok) {
+        statusEl.textContent = 'Upload gagal';
+        statusEl.className = 'text-xs text-red-500 mt-1';
+        return;
+      }
+
+      const saveRes = await fetch('/admin/api/images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, imageUrl: publicUrl }),
+      });
+
+      if (saveRes.ok) {
+        statusEl.textContent = 'Upload berhasil!';
+        statusEl.className = 'text-xs text-green-600 mt-1';
+        window.location.reload();
+      } else {
+        statusEl.textContent = 'Gagal menyimpan foto';
+        statusEl.className = 'text-xs text-red-500 mt-1';
+      }
+    } catch (err) {
+      statusEl.textContent = 'Terjadi kesalahan saat upload';
+      statusEl.className = 'text-xs text-red-500 mt-1';
+    }
+  });
+
+  document.getElementById('delete-image-btn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    if (!window.confirm('Hapus foto ini?')) return;
+
+    try {
+      const res = await fetch('/admin/api/images', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: btn.dataset.productId,
+          imageUrl: btn.dataset.imageUrl,
+        }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      }
+    } catch (err) {
+      // silently fail — non-critical
+    }
+  });
+</script>

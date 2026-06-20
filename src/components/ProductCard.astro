@@ -1,0 +1,66 @@
+---
+import { formatRupiah, buildWaOrderUrl } from '../lib/wa';
+import type { ProductWithDetails } from '../types';
+
+interface Props {
+  product: ProductWithDetails;
+  waNumber?: string;
+}
+
+const { product, waNumber } = Astro.props;
+const waUrl = waNumber ? buildWaOrderUrl({ displayName: product.displayName, qty: 1, waNumber }) : null;
+---
+
+<div
+  data-product-cat={product.category_id}
+  class="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col"
+>
+  <!-- Photo -->
+  <div class="relative aspect-square bg-stone-100">
+    {product.image_url ? (
+      <img
+        src={product.image_url}
+        alt={product.displayName}
+        class="w-full h-full object-cover"
+        loading="lazy"
+      />
+    ) : (
+      <div class="w-full h-full flex items-center justify-center text-stone-300 text-4xl">🫘</div>
+    )}
+    {product.is_active === 0 && (
+      <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+        <span class="bg-white/90 text-stone-700 text-xs font-semibold px-3 py-1 rounded-full">Habis</span>
+      </div>
+    )}
+  </div>
+
+  <!-- Info -->
+  <div class="p-3 flex flex-col gap-1 flex-1">
+    <p class="font-semibold text-stone-900 text-sm leading-snug">{product.category.name}</p>
+    <p class="text-stone-400 text-xs">{product.variant.label}</p>
+
+    <!-- Price -->
+    <div class="mt-auto pt-2">
+      {product.original_price && (
+        <p class="text-stone-400 text-xs line-through">{formatRupiah(product.original_price)}</p>
+      )}
+      <p class="text-brand-700 font-bold text-base">{formatRupiah(product.price)}</p>
+    </div>
+
+    <!-- WA button -->
+    {product.is_active === 1 && waUrl ? (
+      <a
+        href={waUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mt-2 block text-center border border-stone-200 text-stone-600 text-xs font-medium py-2 rounded-xl hover:bg-stone-50 transition-colors"
+      >
+        + Pesan
+      </a>
+    ) : (
+      <div class="mt-2 block text-center border border-stone-100 text-stone-300 text-xs font-medium py-2 rounded-xl cursor-not-allowed">
+        + Pesan
+      </div>
+    )}
+  </div>
+</div>

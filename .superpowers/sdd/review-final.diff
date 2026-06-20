@@ -1,0 +1,2164 @@
+# Review package: da56d63..1f12da8
+
+## Commits
+1f12da8 fix: dashboard stat grid cols-2/sm:cols-4 for 4 cards
+486aeda feat: admin dashboard, product list, product form with image upload
+9b169e2 fix: inline error display for delete failures in master page
+dcbb6f8 feat: admin master page with kategori + variant tabs
+885c1a5 fix: randomUUID for image keys, try/catch all API routes, price null check
+570dd2c feat: admin API routes — products, categories, variants, images, revalidate
+f62e811 fix: sitemap include only active products
+818bdd8 feat: add sitemap.xml and robots.txt endpoints
+995feed feat: product detail page with WA button and Product schema
+9d93779 feat: mobile-first landing page with category tabs and product grid
+5562546 feat: BaseLayout with SEO + schema.org, AdminLayout
+858ad40 feat: storage + WA utilities with tests
+aad0c85 feat: D1 schema + types + db query library
+f84ea64 docs: add WA_NUMBER format comment to .env.example
+
+## Files changed
+ .env.example                             |   1 +
+ docs/minio-cors-setup.md                 |  32 +++++
+ public/favicon.svg                       |  10 +-
+ src/components/CategoryTabs.astro        |  55 +++++++
+ src/components/ProductCard.astro         |  66 +++++++++
+ src/components/admin/ImageUploader.astro | 116 +++++++++++++++
+ src/layouts/AdminLayout.astro            |  36 +++++
+ src/layouts/BaseLayout.astro             |  72 ++++++++++
+ src/lib/db.test.ts                       |  31 ++++
+ src/lib/db.ts                            | 141 ++++++++++++++++++
+ src/lib/storage.ts                       |  48 +++++++
+ src/lib/wa.test.ts                       |  33 +++++
+ src/lib/wa.ts                            |  24 ++++
+ src/migrations/001_initial.sql           |  25 ++++
+ src/pages/admin/api/categories.ts        |  45 ++++++
+ src/pages/admin/api/images.ts            |  92 ++++++++++++
+ src/pages/admin/api/products.ts          |  83 +++++++++++
+ src/pages/admin/api/revalidate.ts        |  13 ++
+ src/pages/admin/api/variants.ts          |  38 +++++
+ src/pages/admin/index.astro              |  43 ++++++
+ src/pages/admin/master.astro             | 238 +++++++++++++++++++++++++++++++
+ src/pages/admin/produk/[id].astro        | 204 ++++++++++++++++++++++++++
+ src/pages/admin/produk/index.astro       |  99 +++++++++++++
+ src/pages/admin/produk/new.astro         | 119 ++++++++++++++++
+ src/pages/index.astro                    |  87 +++++++++--
+ src/pages/produk/[id].astro              | 108 ++++++++++++++
+ src/pages/robots.txt.ts                  |  11 ++
+ src/pages/sitemap.xml.ts                 |  30 ++++
+ src/types.ts                             |  31 ++++
+ 29 files changed, 1910 insertions(+), 21 deletions(-)
+
+## Diff
+diff --git a/.env.example b/.env.example
+index 33bcf1a..dedf980 100644
+--- a/.env.example
++++ b/.env.example
+@@ -1,6 +1,7 @@
+ MINIO_ENDPOINT=https://minio.yourserver.com
+ MINIO_BUCKET=nejemeyek
+ MINIO_ACCESS_KEY=your-access-key
+ MINIO_SECRET_KEY=your-secret-key
++# Format: 628xxxxxxxxx (Indonesia country code, no + prefix, no spaces)
+ WA_NUMBER=6281234567890
+ CF_PAGES_WEBHOOK=https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/YOUR_HOOK_ID
+diff --git a/docs/minio-cors-setup.md b/docs/minio-cors-setup.md
+new file mode 100644
+index 0000000..3e1461c
+--- /dev/null
++++ b/docs/minio-cors-setup.md
+@@ -0,0 +1,32 @@
++# MinIO CORS Setup
++
++Run these commands on the VPS after MinIO is running.
++
++## 1. Configure mc alias
++
++```bash
++mc alias set myminio https://minio.yourserver.com ACCESSKEY SECRETKEY
++```
++
++## 2. Set bucket to allow public downloads
++
++```bash
++mc anonymous set download myminio/nejemeyek
++```
++
++## 3. Create cors.json
++
++```json
++[{
++  "AllowedHeaders": ["*"],
++  "AllowedMethods": ["GET", "PUT"],
++  "AllowedOrigins": ["https://nejemeyekjogja.com", "http://localhost:4321"],
++  "ExposeHeaders": ["ETag"]
++}]
++```
++
++## 4. Apply CORS policy
++
++```bash
++mc cors set myminio/nejemeyek cors.json
++```
+diff --git a/public/favicon.svg b/public/favicon.svg
+index f157bd1..570c749 100644
+--- a/public/favicon.svg
++++ b/public/favicon.svg
+@@ -1,9 +1,3 @@
+-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
+-    <path d="M50.4 78.5a75.1 75.1 0 0 0-28.5 6.9l24.2-65.7c.7-2 1.9-3.2 3.4-3.2h29c1.5 0 2.7 1.2 3.4 3.2l24.2 65.7s-11.6-7-28.5-7L67 45.5c-.4-1.7-1.6-2.8-2.9-2.8-1.3 0-2.5 1.1-2.9 2.7L50.4 78.5Zm-1.1 28.2Zm-4.2-20.2c-2 6.6-.6 15.8 4.2 20.2a17.5 17.5 0 0 1 .2-.7 5.5 5.5 0 0 1 5.7-4.5c2.8.1 4.3 1.5 4.7 4.7.2 1.1.2 2.3.2 3.5v.4c0 2.7.7 5.2 2.2 7.4a13 13 0 0 0 5.7 4.9v-.3l-.2-.3c-1.8-5.6-.5-9.5 4.4-12.8l1.5-1a73 73 0 0 0 3.2-2.2 16 16 0 0 0 6.8-11.4c.3-2 .1-4-.6-6l-.8.6-1.6 1a37 37 0 0 1-22.4 2.7c-5-.7-9.7-2-13.2-6.2Z" />
+-    <style>
+-        path { fill: #000; }
+-        @media (prefers-color-scheme: dark) {
+-            path { fill: #FFF; }
+-        }
+-    </style>
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
++  <text y=".9em" font-size="90">🫘</text>
+ </svg>
+diff --git a/src/components/CategoryTabs.astro b/src/components/CategoryTabs.astro
+new file mode 100644
+index 0000000..6bacefa
+--- /dev/null
++++ b/src/components/CategoryTabs.astro
+@@ -0,0 +1,55 @@
++---
++import type { Category } from '../types';
++
++interface Props {
++  categories: Category[];
++}
++const { categories } = Astro.props;
++---
++
++<div class="sticky top-0 z-10 bg-stone-50 border-b border-stone-200 px-4 py-3">
++  <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none" id="cat-tabs">
++    <button
++      type="button"
++      data-cat="semua"
++      class="cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-900 text-white"
++    >
++      Semua
++    </button>
++    {categories.map(cat => (
++      <button
++        type="button"
++        data-cat={cat.id}
++        class="cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200"
++      >
++        {cat.name}
++      </button>
++    ))}
++  </div>
++</div>
++
++<script>
++  const tabs = document.querySelectorAll<HTMLButtonElement>('.cat-tab');
++  const cards = document.querySelectorAll<HTMLElement>('[data-product-cat]');
++
++  tabs.forEach(tab => {
++    tab.addEventListener('click', () => {
++      const cat = tab.dataset.cat!;
++
++      tabs.forEach(t => {
++        t.className = 'cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-100 text-stone-600 hover:bg-stone-200';
++      });
++      tab.className = 'cat-tab flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-stone-900 text-white';
++
++      cards.forEach(card => {
++        const show = cat === 'semua' || card.dataset.productCat === cat;
++        card.style.display = show ? '' : 'none';
++      });
++    });
++  });
++</script>
++
++<style>
++  .scrollbar-none { scrollbar-width: none; }
++  .scrollbar-none::-webkit-scrollbar { display: none; }
++</style>
+diff --git a/src/components/ProductCard.astro b/src/components/ProductCard.astro
+new file mode 100644
+index 0000000..c80daf7
+--- /dev/null
++++ b/src/components/ProductCard.astro
+@@ -0,0 +1,66 @@
++---
++import { formatRupiah, buildWaOrderUrl } from '../lib/wa';
++import type { ProductWithDetails } from '../types';
++
++interface Props {
++  product: ProductWithDetails;
++  waNumber: string;
++}
++
++const { product, waNumber } = Astro.props;
++const waUrl = buildWaOrderUrl({ displayName: product.displayName, qty: 1, waNumber });
++---
++
++<div
++  data-product-cat={product.category_id}
++  class="bg-white rounded-2xl overflow-hidden shadow-sm flex flex-col"
++>
++  <!-- Photo -->
++  <div class="relative aspect-square bg-stone-100">
++    {product.image_url ? (
++      <img
++        src={product.image_url}
++        alt={product.displayName}
++        class="w-full h-full object-cover"
++        loading="lazy"
++      />
++    ) : (
++      <div class="w-full h-full flex items-center justify-center text-stone-300 text-4xl">🫘</div>
++    )}
++    {product.is_active === 0 && (
++      <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
++        <span class="bg-white/90 text-stone-700 text-xs font-semibold px-3 py-1 rounded-full">Habis</span>
++      </div>
++    )}
++  </div>
++
++  <!-- Info -->
++  <div class="p-3 flex flex-col gap-1 flex-1">
++    <p class="font-semibold text-stone-900 text-sm leading-snug">{product.category.name}</p>
++    <p class="text-stone-400 text-xs">{product.variant.label}</p>
++
++    <!-- Price -->
++    <div class="mt-auto pt-2">
++      {product.original_price && (
++        <p class="text-stone-400 text-xs line-through">{formatRupiah(product.original_price)}</p>
++      )}
++      <p class="text-brand-700 font-bold text-base">{formatRupiah(product.price)}</p>
++    </div>
++
++    <!-- WA button -->
++    {product.is_active === 1 ? (
++      <a
++        href={waUrl}
++        target="_blank"
++        rel="noopener noreferrer"
++        class="mt-2 block text-center border border-stone-200 text-stone-600 text-xs font-medium py-2 rounded-xl hover:bg-stone-50 transition-colors"
++      >
++        + Pesan
++      </a>
++    ) : (
++      <div class="mt-2 block text-center border border-stone-100 text-stone-300 text-xs font-medium py-2 rounded-xl cursor-not-allowed">
++        + Pesan
++      </div>
++    )}
++  </div>
++</div>
+diff --git a/src/components/admin/ImageUploader.astro b/src/components/admin/ImageUploader.astro
+new file mode 100644
+index 0000000..c74c42a
+--- /dev/null
++++ b/src/components/admin/ImageUploader.astro
+@@ -0,0 +1,116 @@
++---
++interface Props {
++  productId: string;
++  currentImageUrl: string | null;
++}
++const { productId, currentImageUrl } = Astro.props;
++---
++
++<div class="space-y-3">
++  <p class="text-sm font-medium text-stone-700">Foto Produk</p>
++
++  {currentImageUrl && (
++    <div class="relative w-32 h-32 rounded-xl overflow-hidden bg-stone-100 group">
++      <img src={currentImageUrl} alt="Foto produk" class="w-full h-full object-cover" />
++      <button
++        type="button"
++        id="delete-image-btn"
++        data-product-id={productId}
++        data-image-url={currentImageUrl}
++        class="absolute top-1 right-1 bg-red-500 text-white text-xs w-6 h-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
++      >
++        &times;
++      </button>
++    </div>
++  )}
++
++  <div>
++    <input
++      type="file"
++      id="image-input"
++      accept="image/jpeg,image/png,image/webp"
++      data-product-id={productId}
++      class="text-sm text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100"
++    />
++    <p id="upload-status" class="text-xs text-stone-400 mt-1"></p>
++  </div>
++</div>
++
++<script>
++  const input = document.getElementById('image-input') as HTMLInputElement;
++  const statusEl = document.getElementById('upload-status')!;
++
++  input?.addEventListener('change', async () => {
++    const file = input.files?.[0];
++    if (!file) return;
++    const productId = input.dataset.productId!;
++    statusEl.textContent = 'Mengupload...';
++    statusEl.className = 'text-xs text-stone-400 mt-1';
++
++    try {
++      const params = new URLSearchParams({
++        filename: file.name,
++        contentType: file.type,
++        productId,
++      });
++      const res = await fetch(`/admin/api/images?${params}`);
++      if (!res.ok) {
++        statusEl.textContent = 'Gagal mendapatkan URL upload';
++        statusEl.className = 'text-xs text-red-500 mt-1';
++        return;
++      }
++
++      const { presignedUrl, publicUrl } = await res.json() as { presignedUrl: string; publicUrl: string };
++
++      const uploadRes = await fetch(presignedUrl, {
++        method: 'PUT',
++        body: file,
++        headers: { 'Content-Type': file.type },
++      });
++      if (!uploadRes.ok) {
++        statusEl.textContent = 'Upload gagal';
++        statusEl.className = 'text-xs text-red-500 mt-1';
++        return;
++      }
++
++      const saveRes = await fetch('/admin/api/images', {
++        method: 'POST',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ productId, imageUrl: publicUrl }),
++      });
++
++      if (saveRes.ok) {
++        statusEl.textContent = 'Upload berhasil!';
++        statusEl.className = 'text-xs text-green-600 mt-1';
++        window.location.reload();
++      } else {
++        statusEl.textContent = 'Gagal menyimpan foto';
++        statusEl.className = 'text-xs text-red-500 mt-1';
++      }
++    } catch (err) {
++      statusEl.textContent = 'Terjadi kesalahan saat upload';
++      statusEl.className = 'text-xs text-red-500 mt-1';
++    }
++  });
++
++  document.getElementById('delete-image-btn')?.addEventListener('click', async (e) => {
++    const btn = e.currentTarget as HTMLButtonElement;
++    if (!window.confirm('Hapus foto ini?')) return;
++
++    try {
++      const res = await fetch('/admin/api/images', {
++        method: 'DELETE',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({
++          productId: btn.dataset.productId,
++          imageUrl: btn.dataset.imageUrl,
++        }),
++      });
++      if (res.ok) {
++        window.location.reload();
++      }
++    } catch (err) {
++      // silently fail — non-critical
++    }
++  });
++</script>
+diff --git a/src/layouts/AdminLayout.astro b/src/layouts/AdminLayout.astro
+new file mode 100644
+index 0000000..8f99219
+--- /dev/null
++++ b/src/layouts/AdminLayout.astro
+@@ -0,0 +1,36 @@
++---
++import '../styles/global.css';
++
++interface Props {
++  title: string;
++}
++
++const { title } = Astro.props;
++const path = Astro.url.pathname;
++---
++
++<!doctype html>
++<html lang="id">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>{title} — Nejemeyek Admin</title>
++    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
++  </head>
++  <body class="bg-stone-100 text-stone-900 font-sans min-h-screen">
++    <nav class="bg-brand-700 text-white px-4 py-3 flex items-center gap-6">
++      <a href="/admin" class="font-bold">Nejemeyek</a>
++      <a
++        href="/admin/produk"
++        class={`text-sm ${path.startsWith('/admin/produk') ? 'text-white font-medium' : 'text-brand-200 hover:text-white'}`}
++      >Produk</a>
++      <a
++        href="/admin/master"
++        class={`text-sm ${path === '/admin/master' ? 'text-white font-medium' : 'text-brand-200 hover:text-white'}`}
++      >Master</a>
++    </nav>
++    <main class="max-w-3xl mx-auto px-4 py-8">
++      <slot />
++    </main>
++  </body>
++</html>
+diff --git a/src/layouts/BaseLayout.astro b/src/layouts/BaseLayout.astro
+new file mode 100644
+index 0000000..0bd2b42
+--- /dev/null
++++ b/src/layouts/BaseLayout.astro
+@@ -0,0 +1,72 @@
++---
++import '../styles/global.css';
++
++interface Props {
++  title: string;
++  description: string;
++  ogImage?: string;
++  canonicalUrl?: string;
++  isProductPage?: boolean;
++  productSchema?: Record<string, unknown>;
++  localBusiness?: boolean;
++}
++
++const {
++  title,
++  description,
++  ogImage = '/og-default.jpg',
++  canonicalUrl = Astro.url.href,
++  localBusiness = false,
++  productSchema,
++} = Astro.props;
++
++const waNumber = Astro.locals.runtime?.env?.WA_NUMBER ?? '';
++const phoneNumber = waNumber ? '+62' + waNumber.slice(2) : '';
++
++const localBusinessSchema = {
++  '@context': 'https://schema.org',
++  '@type': 'LocalBusiness',
++  name: 'Nejemeyek',
++  description: 'Peyek khas Jogja, dibuat dengan resep tradisional.',
++  url: Astro.site?.toString() ?? '',
++  telephone: phoneNumber,
++  address: {
++    '@type': 'PostalAddress',
++    addressLocality: 'Yogyakarta',
++    addressRegion: 'DIY',
++    addressCountry: 'ID',
++  },
++  areaServed: 'Yogyakarta',
++};
++---
++
++<!doctype html>
++<html lang="id">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>{title}</title>
++    <meta name="description" content={description} />
++    <link rel="canonical" href={canonicalUrl} />
++
++    <meta property="og:title" content={title} />
++    <meta property="og:description" content={description} />
++    <meta property="og:image" content={ogImage} />
++    <meta property="og:url" content={canonicalUrl} />
++    <meta property="og:type" content="website" />
++    <meta property="og:locale" content="id_ID" />
++    <meta name="twitter:card" content="summary_large_image" />
++
++    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
++
++    {localBusiness && (
++      <script is:inline type="application/ld+json" set:html={JSON.stringify(localBusinessSchema)} />
++    )}
++    {productSchema && (
++      <script is:inline type="application/ld+json" set:html={JSON.stringify(productSchema)} />
++    )}
++  </head>
++  <body class="bg-stone-50 text-stone-900 font-sans">
++    <slot />
++  </body>
++</html>
+diff --git a/src/lib/db.test.ts b/src/lib/db.test.ts
+new file mode 100644
+index 0000000..09d7db0
+--- /dev/null
++++ b/src/lib/db.test.ts
+@@ -0,0 +1,31 @@
++import { describe, it, expect, vi } from 'vitest';
++import { getActiveProducts, getCategoryById } from './db';
++
++function makeDb(firstResult: unknown = null, allResults: unknown[] = []) {
++  return {
++    prepare: vi.fn().mockReturnThis(),
++    bind: vi.fn().mockReturnThis(),
++    first: vi.fn().mockResolvedValue(firstResult),
++    all: vi.fn().mockResolvedValue({ results: allResults }),
++    run: vi.fn().mockResolvedValue({}),
++    batch: vi.fn().mockResolvedValue([
++      { results: allResults },
++      { results: [] },
++    ]),
++  } as unknown as D1Database;
++}
++
++describe('getCategoryById', () => {
++  it('returns category when found', async () => {
++    const cat = { id: 'peyek-rebon', name: 'Peyek Rebon', sort_order: 0, created_at: '' };
++    const db = makeDb(cat);
++    const result = await getCategoryById(db, 'peyek-rebon');
++    expect(result).toEqual(cat);
++  });
++
++  it('returns null when not found', async () => {
++    const db = makeDb(null);
++    const result = await getCategoryById(db, 'not-exist');
++    expect(result).toBeNull();
++  });
++});
+diff --git a/src/lib/db.ts b/src/lib/db.ts
+new file mode 100644
+index 0000000..f22f4be
+--- /dev/null
++++ b/src/lib/db.ts
+@@ -0,0 +1,141 @@
++import type { Category, ProductVariant, Product, ProductWithDetails } from '../types';
++
++// ─── Categories ────────────────────────────────────────────────────────────
++
++export async function getCategories(db: D1Database): Promise<Category[]> {
++  const r = await db
++    .prepare('SELECT * FROM categories ORDER BY sort_order ASC, name ASC')
++    .all<Category>();
++  return r.results;
++}
++
++export async function getCategoryById(db: D1Database, id: string): Promise<Category | null> {
++  return db.prepare('SELECT * FROM categories WHERE id = ?').bind(id).first<Category>() ?? null;
++}
++
++export async function createCategory(
++  db: D1Database,
++  data: { id: string; name: string; sort_order: number },
++): Promise<void> {
++  const now = new Date().toISOString();
++  await db
++    .prepare('INSERT INTO categories (id, name, sort_order, created_at) VALUES (?, ?, ?, ?)')
++    .bind(data.id, data.name, data.sort_order, now)
++    .run();
++}
++
++export async function deleteCategory(db: D1Database, id: string): Promise<void> {
++  await db.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
++}
++
++// ─── Product Variants ───────────────────────────────────────────────────────
++
++export async function getVariants(db: D1Database): Promise<ProductVariant[]> {
++  const r = await db
++    .prepare('SELECT * FROM product_variants ORDER BY sort_order ASC, label ASC')
++    .all<ProductVariant>();
++  return r.results;
++}
++
++export async function createVariant(
++  db: D1Database,
++  data: { label: string; sort_order: number },
++): Promise<void> {
++  const id = crypto.randomUUID();
++  await db
++    .prepare('INSERT INTO product_variants (id, label, sort_order) VALUES (?, ?, ?)')
++    .bind(id, data.label, data.sort_order)
++    .run();
++}
++
++export async function deleteVariant(db: D1Database, id: string): Promise<void> {
++  await db.prepare('DELETE FROM product_variants WHERE id = ?').bind(id).run();
++}
++
++// ─── Products ───────────────────────────────────────────────────────────────
++
++async function attachDetails(db: D1Database, products: Product[]): Promise<ProductWithDetails[]> {
++  if (products.length === 0) return [];
++
++  const [catsResult, varsResult] = await db.batch([
++    db.prepare('SELECT * FROM categories'),
++    db.prepare('SELECT * FROM product_variants'),
++  ]);
++
++  const cats = new Map((catsResult as D1Result<Category>).results.map(c => [c.id, c]));
++  const vars = new Map((varsResult as D1Result<ProductVariant>).results.map(v => [v.id, v]));
++
++  return products.map(p => {
++    const category = cats.get(p.category_id)!;
++    const variant = vars.get(p.variant_id)!;
++    return {
++      ...p,
++      category,
++      variant,
++      displayName: `${category.name} ${variant.label}`,
++    };
++  });
++}
++
++export async function getActiveProducts(db: D1Database): Promise<ProductWithDetails[]> {
++  const r = await db
++    .prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY sort_order ASC, created_at DESC')
++    .all<Product>();
++  return attachDetails(db, r.results);
++}
++
++export async function getAllProducts(db: D1Database): Promise<ProductWithDetails[]> {
++  const r = await db
++    .prepare('SELECT * FROM products ORDER BY sort_order ASC, created_at DESC')
++    .all<Product>();
++  return attachDetails(db, r.results);
++}
++
++export async function getProductById(db: D1Database, id: string): Promise<ProductWithDetails | null> {
++  const p = await db.prepare('SELECT * FROM products WHERE id = ?').bind(id).first<Product>();
++  if (!p) return null;
++  const [details] = await attachDetails(db, [p]);
++  return details ?? null;
++}
++
++export async function createProduct(
++  db: D1Database,
++  data: {
++    category_id: string;
++    variant_id: string;
++    price: number;
++    original_price: number | null;
++    image_url: string | null;
++    sort_order: number;
++  },
++): Promise<string> {
++  const id = crypto.randomUUID();
++  const now = new Date().toISOString();
++  await db
++    .prepare(
++      'INSERT INTO products (id, category_id, variant_id, price, original_price, image_url, is_active, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)',
++    )
++    .bind(id, data.category_id, data.variant_id, data.price, data.original_price, data.image_url, data.sort_order, now, now)
++    .run();
++  return id;
++}
++
++export async function updateProduct(
++  db: D1Database,
++  id: string,
++  updates: Partial<Pick<Product, 'price' | 'original_price' | 'image_url' | 'is_active' | 'sort_order' | 'category_id' | 'variant_id'>>,
++): Promise<void> {
++  const now = new Date().toISOString();
++  const entries = Object.entries(updates);
++  if (entries.length === 0) return;
++  const setClause = entries.map(([k]) => `${k} = ?`).join(', ');
++  const values = [...entries.map(([, v]) => v), now, id];
++  await db
++    .prepare(`UPDATE products SET ${setClause}, updated_at = ? WHERE id = ?`)
++    .bind(...values)
++    .run();
++}
++
++export async function deleteProduct(db: D1Database, id: string): Promise<void> {
++  await db.prepare('DELETE FROM products WHERE id = ?').bind(id).run();
++}
+diff --git a/src/lib/storage.ts b/src/lib/storage.ts
+new file mode 100644
+index 0000000..fbaa1cf
+--- /dev/null
++++ b/src/lib/storage.ts
+@@ -0,0 +1,48 @@
++import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
++import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
++
++export interface StorageConfig {
++  endpoint: string;
++  bucket: string;
++  accessKey: string;
++  secretKey: string;
++}
++
++function createClient(config: StorageConfig): S3Client {
++  return new S3Client({
++    endpoint: config.endpoint,
++    region: 'us-east-1',
++    credentials: {
++      accessKeyId: config.accessKey,
++      secretAccessKey: config.secretKey,
++    },
++    forcePathStyle: true,
++  });
++}
++
++export async function getPresignedUploadUrl(
++  config: StorageConfig,
++  key: string,
++  contentType: string,
++): Promise<string> {
++  const client = createClient(config);
++  const command = new PutObjectCommand({
++    Bucket: config.bucket,
++    Key: key,
++    ContentType: contentType,
++  });
++  return getSignedUrl(client, command, { expiresIn: 300 });
++}
++
++export function getPublicUrl(config: StorageConfig, key: string): string {
++  return `${config.endpoint}/${config.bucket}/${key}`;
++}
++
++export async function deleteObject(config: StorageConfig, key: string): Promise<void> {
++  const client = createClient(config);
++  await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
++}
++
++export function keyFromUrl(url: string, endpoint: string, bucket: string): string {
++  return url.replace(`${endpoint}/${bucket}/`, '');
++}
+diff --git a/src/lib/wa.test.ts b/src/lib/wa.test.ts
+new file mode 100644
+index 0000000..ffbd763
+--- /dev/null
++++ b/src/lib/wa.test.ts
+@@ -0,0 +1,33 @@
++import { describe, it, expect } from 'vitest';
++import { buildWaOrderUrl, formatRupiah, slugify } from './wa';
++
++describe('buildWaOrderUrl', () => {
++  it('builds WA URL with pre-filled message', () => {
++    const url = buildWaOrderUrl({
++      displayName: 'Peyek Rebon 250gr',
++      qty: 2,
++      waNumber: '6281234567890',
++    });
++    expect(url).toContain('https://wa.me/6281234567890');
++    expect(url).toContain(encodeURIComponent('Peyek Rebon 250gr'));
++    expect(url).toContain(encodeURIComponent('x2'));
++  });
++});
++
++describe('formatRupiah', () => {
++  it('formats to Indonesian Rupiah', () => {
++    expect(formatRupiah(25000)).toBe('Rp 25.000');
++  });
++});
++
++describe('slugify', () => {
++  it('converts to URL-safe slug', () => {
++    expect(slugify('Peyek Rebon')).toBe('peyek-rebon');
++  });
++  it('strips special characters', () => {
++    expect(slugify('Peyek & Teri!')).toBe('peyek-teri');
++  });
++  it('collapses hyphens', () => {
++    expect(slugify('peyek--kacang')).toBe('peyek-kacang');
++  });
++});
+diff --git a/src/lib/wa.ts b/src/lib/wa.ts
+new file mode 100644
+index 0000000..3252b55
+--- /dev/null
++++ b/src/lib/wa.ts
+@@ -0,0 +1,24 @@
++export interface WaOrderParams {
++  displayName: string;
++  qty: number;
++  waNumber: string;
++}
++
++export function buildWaOrderUrl(params: WaOrderParams): string {
++  const message = `Halo, saya mau pesan:\n- ${params.displayName} x${params.qty}\nApakah stok tersedia?`;
++  return `https://wa.me/${params.waNumber}?text=${encodeURIComponent(message)}`;
++}
++
++export function formatRupiah(price: number): string {
++  const formatted = price.toLocaleString('id-ID');
++  return `Rp ${formatted}`;
++}
++
++export function slugify(text: string): string {
++  return text
++    .toLowerCase()
++    .replace(/[^a-z0-9\s-]/g, '')
++    .replace(/\s+/g, '-')
++    .replace(/-+/g, '-')
++    .trim();
++}
+diff --git a/src/migrations/001_initial.sql b/src/migrations/001_initial.sql
+new file mode 100644
+index 0000000..b45789a
+--- /dev/null
++++ b/src/migrations/001_initial.sql
+@@ -0,0 +1,25 @@
++CREATE TABLE IF NOT EXISTS categories (
++  id         TEXT PRIMARY KEY,
++  name       TEXT NOT NULL,
++  sort_order INTEGER NOT NULL DEFAULT 0,
++  created_at TEXT NOT NULL
++);
++
++CREATE TABLE IF NOT EXISTS product_variants (
++  id         TEXT PRIMARY KEY,
++  label      TEXT NOT NULL,
++  sort_order INTEGER NOT NULL DEFAULT 0
++);
++
++CREATE TABLE IF NOT EXISTS products (
++  id             TEXT PRIMARY KEY,
++  category_id    TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
++  variant_id     TEXT NOT NULL REFERENCES product_variants(id) ON DELETE CASCADE,
++  price          INTEGER NOT NULL,
++  original_price INTEGER,
++  image_url      TEXT,
++  is_active      INTEGER NOT NULL DEFAULT 1,
++  sort_order     INTEGER NOT NULL DEFAULT 0,
++  created_at     TEXT NOT NULL,
++  updated_at     TEXT NOT NULL
++);
+diff --git a/src/pages/admin/api/categories.ts b/src/pages/admin/api/categories.ts
+new file mode 100644
+index 0000000..c2288a2
+--- /dev/null
++++ b/src/pages/admin/api/categories.ts
+@@ -0,0 +1,45 @@
++import type { APIRoute } from 'astro';
++import { createCategory, deleteCategory, getCategoryById } from '../../../lib/db';
++import { slugify } from '../../../lib/wa';
++
++export const prerender = false;
++
++export const POST: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const { name, sort_order = 0 } = await request.json() as { name: string; sort_order?: number };
++
++    if (!name?.trim()) {
++      return new Response(JSON.stringify({ success: false, error: 'name required' }), { status: 400 });
++    }
++
++    const id = slugify(name);
++    const existing = await getCategoryById(db, id);
++    if (existing) {
++      return new Response(JSON.stringify({ success: false, error: 'category already exists' }), { status: 409 });
++    }
++
++    await createCategory(db, { id, name: name.trim(), sort_order: Number(sort_order) });
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true, id }), { status: 201 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
++
++export const DELETE: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const { id } = await request.json() as { id: string };
++
++    if (!id) {
++      return new Response(JSON.stringify({ success: false, error: 'id required' }), { status: 400 });
++    }
++
++    await deleteCategory(db, id);
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
+diff --git a/src/pages/admin/api/images.ts b/src/pages/admin/api/images.ts
+new file mode 100644
+index 0000000..1f363cc
+--- /dev/null
++++ b/src/pages/admin/api/images.ts
+@@ -0,0 +1,92 @@
++import type { APIRoute } from 'astro';
++import { updateProduct } from '../../../lib/db';
++import { getPresignedUploadUrl, getPublicUrl, deleteObject, keyFromUrl } from '../../../lib/storage';
++
++export const prerender = false;
++
++// GET ?filename=foo.jpg&contentType=image/jpeg&productId=uuid
++export const GET: APIRoute = async ({ url, locals }) => {
++  try {
++    const filename = url.searchParams.get('filename');
++    const contentType = url.searchParams.get('contentType') ?? 'image/jpeg';
++    const productId = url.searchParams.get('productId');
++
++    if (!filename || !productId) {
++      return new Response(
++        JSON.stringify({ success: false, error: 'filename and productId required' }),
++        { status: 400 },
++      );
++    }
++
++    const env = locals.runtime.env;
++    const key = `products/${productId}/${crypto.randomUUID()}-${filename}`;
++    const config = {
++      endpoint: env.MINIO_ENDPOINT,
++      bucket: env.MINIO_BUCKET,
++      accessKey: env.MINIO_ACCESS_KEY,
++      secretKey: env.MINIO_SECRET_KEY,
++    };
++
++    const presignedUrl = await getPresignedUploadUrl(config, key, contentType);
++    const publicUrl = getPublicUrl(config, key);
++
++    return new Response(JSON.stringify({ success: true, presignedUrl, publicUrl }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
++
++// POST — save image_url to product row after upload completes
++export const POST: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const { productId, imageUrl } = await request.json() as { productId: string; imageUrl: string };
++
++    if (!productId || !imageUrl) {
++      return new Response(
++        JSON.stringify({ success: false, error: 'productId and imageUrl required' }),
++        { status: 400 },
++      );
++    }
++
++    await updateProduct(db, productId, { image_url: imageUrl });
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
++
++// DELETE — remove object from MinIO and clear image_url on product
++export const DELETE: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const env = locals.runtime.env;
++    const { productId, imageUrl } = await request.json() as { productId: string; imageUrl: string };
++
++    if (!productId || !imageUrl) {
++      return new Response(
++        JSON.stringify({ success: false, error: 'productId and imageUrl required' }),
++        { status: 400 },
++      );
++    }
++
++    const config = {
++      endpoint: env.MINIO_ENDPOINT,
++      bucket: env.MINIO_BUCKET,
++      accessKey: env.MINIO_ACCESS_KEY,
++      secretKey: env.MINIO_SECRET_KEY,
++    };
++    const key = keyFromUrl(imageUrl, env.MINIO_ENDPOINT, env.MINIO_BUCKET);
++
++    await Promise.all([
++      deleteObject(config, key),
++      updateProduct(db, productId, { image_url: null }),
++    ]);
++
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
+diff --git a/src/pages/admin/api/products.ts b/src/pages/admin/api/products.ts
+new file mode 100644
+index 0000000..21d906d
+--- /dev/null
++++ b/src/pages/admin/api/products.ts
+@@ -0,0 +1,83 @@
++import type { APIRoute } from 'astro';
++import { createProduct, updateProduct, deleteProduct } from '../../../lib/db';
++
++export const prerender = false;
++
++export const POST: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const body = await request.json() as {
++      category_id: string;
++      variant_id: string;
++      price: number;
++      original_price?: number | null;
++      image_url?: string | null;
++      sort_order?: number;
++    };
++
++    if (!body.category_id || !body.variant_id || body.price == null) {
++      return new Response(
++        JSON.stringify({ success: false, error: 'category_id, variant_id, price required' }),
++        { status: 400 },
++      );
++    }
++
++    const id = await createProduct(db, {
++      category_id: body.category_id,
++      variant_id: body.variant_id,
++      price: Number(body.price),
++      original_price: body.original_price ?? null,
++      image_url: body.image_url ?? null,
++      sort_order: Number(body.sort_order ?? 0),
++    });
++
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true, id }), { status: 201 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
++
++export const PUT: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const body = await request.json() as {
++      id: string;
++      price?: number;
++      original_price?: number | null;
++      image_url?: string | null;
++      is_active?: number;
++      sort_order?: number;
++      category_id?: string;
++      variant_id?: string;
++    };
++
++    if (!body.id) {
++      return new Response(JSON.stringify({ success: false, error: 'id required' }), { status: 400 });
++    }
++
++    const { id, ...updates } = body;
++    await updateProduct(db, id, updates as Parameters<typeof updateProduct>[2]);
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
++
++export const DELETE: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const { id } = await request.json() as { id: string };
++
++    if (!id) {
++      return new Response(JSON.stringify({ success: false, error: 'id required' }), { status: 400 });
++    }
++
++    await deleteProduct(db, id);
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
+diff --git a/src/pages/admin/api/revalidate.ts b/src/pages/admin/api/revalidate.ts
+new file mode 100644
+index 0000000..0a61543
+--- /dev/null
++++ b/src/pages/admin/api/revalidate.ts
+@@ -0,0 +1,13 @@
++import type { APIRoute } from 'astro';
++
++export const prerender = false;
++
++export const POST: APIRoute = async ({ locals }) => {
++  try {
++    const webhook = locals.runtime.env.CF_PAGES_WEBHOOK;
++    if (webhook) fetch(webhook, { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ ok: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
+diff --git a/src/pages/admin/api/variants.ts b/src/pages/admin/api/variants.ts
+new file mode 100644
+index 0000000..aeb5f86
+--- /dev/null
++++ b/src/pages/admin/api/variants.ts
+@@ -0,0 +1,38 @@
++import type { APIRoute } from 'astro';
++import { createVariant, deleteVariant } from '../../../lib/db';
++
++export const prerender = false;
++
++export const POST: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const { label, sort_order = 0 } = await request.json() as { label: string; sort_order?: number };
++
++    if (!label?.trim()) {
++      return new Response(JSON.stringify({ success: false, error: 'label required' }), { status: 400 });
++    }
++
++    await createVariant(db, { label: label.trim(), sort_order: Number(sort_order) });
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 201 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
++
++export const DELETE: APIRoute = async ({ request, locals }) => {
++  try {
++    const db = locals.runtime.env.DB;
++    const { id } = await request.json() as { id: string };
++
++    if (!id) {
++      return new Response(JSON.stringify({ success: false, error: 'id required' }), { status: 400 });
++    }
++
++    await deleteVariant(db, id);
++    fetch(new URL('/admin/api/revalidate', request.url), { method: 'POST' }).catch(() => {});
++    return new Response(JSON.stringify({ success: true }), { status: 200 });
++  } catch (e) {
++    return Response.json({ success: false, error: String(e) }, { status: 500 });
++  }
++};
+diff --git a/src/pages/admin/index.astro b/src/pages/admin/index.astro
+new file mode 100644
+index 0000000..569b809
+--- /dev/null
++++ b/src/pages/admin/index.astro
+@@ -0,0 +1,43 @@
++---
++export const prerender = false;
++import AdminLayout from '../../layouts/AdminLayout.astro';
++import { getAllProducts, getCategories, getVariants } from '../../lib/db';
++
++const db = Astro.locals.runtime.env.DB;
++const [products, categories, variants] = await Promise.all([
++  getAllProducts(db),
++  getCategories(db),
++  getVariants(db),
++]);
++const active = products.filter(p => p.is_active === 1).length;
++---
++
++<AdminLayout title="Dashboard">
++  <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
++  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
++    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
++      <p class="text-3xl font-bold text-brand-700">{active}</p>
++      <p class="text-xs text-stone-500 mt-1">Produk Aktif</p>
++    </div>
++    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
++      <p class="text-3xl font-bold text-stone-700">{products.length}</p>
++      <p class="text-xs text-stone-500 mt-1">Total Produk</p>
++    </div>
++    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
++      <p class="text-3xl font-bold text-stone-700">{categories.length}</p>
++      <p class="text-xs text-stone-500 mt-1">Kategori</p>
++    </div>
++    <div class="bg-white rounded-xl p-4 shadow-sm text-center">
++      <p class="text-3xl font-bold text-stone-700">{variants.length}</p>
++      <p class="text-xs text-stone-500 mt-1">Variant</p>
++    </div>
++  </div>
++  <div class="flex gap-3">
++    <a href="/admin/produk/new" class="bg-brand-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-brand-700">
++      + Tambah Produk
++    </a>
++    <a href="/admin/master" class="border border-stone-200 text-stone-600 text-sm font-medium py-2 px-4 rounded-lg hover:bg-stone-50">
++      Kelola Kategori & Variant
++    </a>
++  </div>
++</AdminLayout>
+diff --git a/src/pages/admin/master.astro b/src/pages/admin/master.astro
+new file mode 100644
+index 0000000..0f478bc
+--- /dev/null
++++ b/src/pages/admin/master.astro
+@@ -0,0 +1,238 @@
++---
++export const prerender = false;
++import AdminLayout from '../../layouts/AdminLayout.astro';
++import { getCategories, getVariants } from '../../lib/db';
++
++const db = Astro.locals.runtime.env.DB;
++const [categories, variants] = await Promise.all([
++  getCategories(db),
++  getVariants(db),
++]);
++---
++
++<AdminLayout title="Master Data">
++  <h1 class="text-2xl font-bold mb-6">Master Data</h1>
++
++  <!-- Tabs -->
++  <div class="flex border-b border-stone-200 mb-6">
++    <button
++      type="button"
++      id="tab-kategori"
++      class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-brand-600 text-brand-700 -mb-px"
++    >
++      Kategori
++    </button>
++    <button
++      type="button"
++      id="tab-variant"
++      class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-700 -mb-px"
++    >
++      Variant
++    </button>
++  </div>
++
++  <!-- Kategori panel -->
++  <div id="panel-kategori" class="space-y-4">
++    <div class="space-y-2">
++      {categories.map(cat => (
++        <div class="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between">
++          <div>
++            <p class="font-medium text-stone-900">{cat.name}</p>
++            <p class="text-xs text-stone-400">/{cat.id} &middot; urutan {cat.sort_order}</p>
++          </div>
++          <button
++            type="button"
++            class="text-sm text-red-500 hover:text-red-700 delete-cat-btn"
++            data-id={cat.id}
++            data-name={cat.name}
++          >
++            Hapus
++          </button>
++        </div>
++      ))}
++    </div>
++    <p id="cat-delete-error" class="hidden text-red-600 text-sm mt-1"></p>
++
++    <!-- Add category form -->
++    <div class="bg-white rounded-xl p-4 shadow-sm">
++      <p class="font-medium text-stone-700 mb-3 text-sm">Tambah Kategori</p>
++      <div class="flex gap-2">
++        <input
++          type="text"
++          id="new-cat-name"
++          placeholder="Peyek Rebon"
++          class="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++        />
++        <input
++          type="number"
++          id="new-cat-order"
++          placeholder="Urutan"
++          value="0"
++          class="w-24 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++        />
++        <button
++          type="button"
++          id="add-cat-btn"
++          class="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700"
++        >
++          Tambah
++        </button>
++      </div>
++      <p id="cat-error" class="text-red-500 text-xs mt-2 hidden"></p>
++    </div>
++  </div>
++
++  <!-- Variant panel (hidden by default) -->
++  <div id="panel-variant" class="space-y-4 hidden">
++    <div class="space-y-2">
++      {variants.map(v => (
++        <div class="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center justify-between">
++          <div>
++            <p class="font-medium text-stone-900">{v.label}</p>
++            <p class="text-xs text-stone-400">urutan {v.sort_order}</p>
++          </div>
++          <button
++            type="button"
++            class="text-sm text-red-500 hover:text-red-700 delete-var-btn"
++            data-id={String(v.id)}
++            data-label={v.label}
++          >
++            Hapus
++          </button>
++        </div>
++      ))}
++    </div>
++    <p id="var-delete-error" class="hidden text-red-600 text-sm mt-1"></p>
++
++    <!-- Add variant form -->
++    <div class="bg-white rounded-xl p-4 shadow-sm">
++      <p class="font-medium text-stone-700 mb-3 text-sm">Tambah Variant</p>
++      <div class="flex gap-2">
++        <input
++          type="text"
++          id="new-var-label"
++          placeholder="250 gram"
++          class="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++        />
++        <button
++          type="button"
++          id="add-var-btn"
++          class="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700"
++        >
++          Tambah
++        </button>
++      </div>
++      <p id="var-error" class="text-red-500 text-xs mt-2 hidden"></p>
++    </div>
++  </div>
++</AdminLayout>
++
++<script>
++  // Tabs
++  const tabKat = document.getElementById('tab-kategori')!;
++  const tabVar = document.getElementById('tab-variant')!;
++  const panelKat = document.getElementById('panel-kategori')!;
++  const panelVar = document.getElementById('panel-variant')!;
++
++  const activeTabClass = 'tab-btn px-4 py-2 text-sm font-medium border-b-2 border-brand-600 text-brand-700 -mb-px';
++  const inactiveTabClass = 'tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-700 -mb-px';
++
++  tabKat.addEventListener('click', () => {
++    tabKat.className = activeTabClass; tabVar.className = inactiveTabClass;
++    panelKat.classList.remove('hidden'); panelVar.classList.add('hidden');
++  });
++
++  tabVar.addEventListener('click', () => {
++    tabVar.className = activeTabClass; tabKat.className = inactiveTabClass;
++    panelVar.classList.remove('hidden'); panelKat.classList.add('hidden');
++  });
++
++  // Add category
++  document.getElementById('add-cat-btn')?.addEventListener('click', async () => {
++    const name = (document.getElementById('new-cat-name') as HTMLInputElement).value.trim();
++    const sort_order = Number((document.getElementById('new-cat-order') as HTMLInputElement).value);
++    const errEl = document.getElementById('cat-error')!;
++
++    if (!name) { errEl.textContent = 'Nama wajib diisi'; errEl.classList.remove('hidden'); return; }
++    errEl.classList.add('hidden');
++
++    const res = await fetch('/admin/api/categories', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ name, sort_order }),
++    });
++
++    if (res.ok) {
++      window.location.reload();
++    } else {
++      const { error } = await res.json() as { error: string };
++      errEl.textContent = error || 'Terjadi kesalahan'; errEl.classList.remove('hidden');
++    }
++  });
++
++  // Delete category
++  document.querySelectorAll('.delete-cat-btn').forEach(btn => {
++    btn.addEventListener('click', async () => {
++      const el = btn as HTMLButtonElement;
++      const catDelErr = document.getElementById('cat-delete-error')!;
++      catDelErr.classList.add('hidden'); catDelErr.textContent = '';
++      if (!window.confirm(`Hapus kategori "${el.dataset.name}"? Semua produk dalam kategori ini juga akan terhapus.`)) return;
++
++      const res = await fetch('/admin/api/categories', {
++        method: 'DELETE',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ id: el.dataset.id }),
++      });
++
++      if (res.ok) {
++        window.location.reload();
++      } else {
++        catDelErr.textContent = 'Gagal menghapus kategori'; catDelErr.classList.remove('hidden');
++      }
++    });
++  });
++
++  // Add variant
++  document.getElementById('add-var-btn')?.addEventListener('click', async () => {
++    const label = (document.getElementById('new-var-label') as HTMLInputElement).value.trim();
++    const errEl = document.getElementById('var-error')!;
++
++    if (!label) { errEl.textContent = 'Label wajib diisi'; errEl.classList.remove('hidden'); return; }
++    errEl.classList.add('hidden');
++
++    const res = await fetch('/admin/api/variants', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ label }),
++    });
++
++    if (res.ok) {
++      window.location.reload();
++    } else {
++      const { error } = await res.json() as { error: string };
++      errEl.textContent = error || 'Terjadi kesalahan'; errEl.classList.remove('hidden');
++    }
++  });
++
++  // Delete variant
++  document.querySelectorAll('.delete-var-btn').forEach(btn => {
++    btn.addEventListener('click', async () => {
++      const el = btn as HTMLButtonElement;
++      const varDelErr = document.getElementById('var-delete-error')!;
++      varDelErr.classList.add('hidden'); varDelErr.textContent = '';
++      if (!window.confirm(`Hapus variant "${el.dataset.label}"?`)) return;
++
++      const res = await fetch('/admin/api/variants', {
++        method: 'DELETE',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ id: el.dataset.id }),
++      });
++
++      if (res.ok) {
++        window.location.reload();
++      } else {
++        varDelErr.textContent = 'Gagal menghapus variant'; varDelErr.classList.remove('hidden');
++      }
++    });
++  });
++</script>
+diff --git a/src/pages/admin/produk/[id].astro b/src/pages/admin/produk/[id].astro
+new file mode 100644
+index 0000000..7984238
+--- /dev/null
++++ b/src/pages/admin/produk/[id].astro
+@@ -0,0 +1,204 @@
++---
++export const prerender = false;
++import AdminLayout from '../../../layouts/AdminLayout.astro';
++import ImageUploader from '../../../components/admin/ImageUploader.astro';
++import { getProductById, getCategories, getVariants } from '../../../lib/db';
++import { formatRupiah } from '../../../lib/wa';
++
++const { id } = Astro.params;
++const db = Astro.locals.runtime.env.DB;
++
++const [product, categories, variants] = await Promise.all([
++  getProductById(db, id!),
++  getCategories(db),
++  getVariants(db),
++]);
++
++if (!product) return Astro.redirect('/admin/produk');
++
++let saved = false;
++let error = '';
++
++if (Astro.request.method === 'POST') {
++  const form = await Astro.request.formData();
++  const originalPriceRaw = form.get('original_price');
++
++  const body = {
++    id,
++    category_id: form.get('category_id') as string,
++    variant_id: form.get('variant_id') as string,
++    price: Number(form.get('price')),
++    original_price: originalPriceRaw && String(originalPriceRaw).trim() !== '' ? Number(originalPriceRaw) : null,
++    sort_order: Number(form.get('sort_order') ?? 0),
++  };
++
++  const res = await fetch(new URL('/admin/api/products', Astro.url), {
++    method: 'PUT',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(body),
++  });
++
++  if (res.ok) {
++    saved = true;
++  } else {
++    try {
++      const { error: e } = await res.json() as { error: string };
++      error = e || 'Gagal menyimpan perubahan';
++    } catch {
++      error = 'Gagal menyimpan perubahan';
++    }
++  }
++}
++---
++
++<AdminLayout title={`Edit: ${product.displayName}`}>
++  <div class="flex items-center gap-3 mb-6">
++    <a href="/admin/produk" class="text-stone-500 hover:text-stone-700 text-sm">&#8592; Kembali</a>
++    <h1 class="text-xl font-bold truncate">{product.displayName}</h1>
++  </div>
++
++  {saved && (
++    <div class="bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-3 mb-4 text-sm">
++      Tersimpan!
++    </div>
++  )}
++  {error && (
++    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">
++      {error}
++    </div>
++  )}
++
++  <div class="space-y-4">
++    <!-- Edit form -->
++    <form method="POST" class="bg-white rounded-xl p-5 shadow-sm space-y-4">
++      <div class="grid grid-cols-2 gap-4">
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Kategori</label>
++          <select name="category_id" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
++            {categories.map(c => (
++              <option value={c.id} selected={c.id === product.category_id}>{c.name}</option>
++            ))}
++          </select>
++        </div>
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Variant</label>
++          <select name="variant_id" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
++            {variants.map(v => (
++              <option value={v.id} selected={v.id === product.variant_id}>{v.label}</option>
++            ))}
++          </select>
++        </div>
++      </div>
++      <div class="grid grid-cols-2 gap-4">
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Jual (Rp)</label>
++          <input
++            type="number"
++            name="price"
++            value={product.price}
++            min="1"
++            required
++            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++          />
++        </div>
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Coret (Rp)</label>
++          <input
++            type="number"
++            name="original_price"
++            value={product.original_price ?? ''}
++            min="1"
++            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++            placeholder="Kosongkan jika tidak ada"
++          />
++        </div>
++      </div>
++      <div>
++        <label class="block text-sm font-medium text-stone-700 mb-1">Urutan Tampil</label>
++        <input
++          type="number"
++          name="sort_order"
++          value={product.sort_order}
++          class="w-32 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++        />
++      </div>
++      <div class="flex items-center gap-3 pt-1">
++        <button type="submit" class="bg-brand-600 text-white font-medium py-2 px-5 rounded-lg hover:bg-brand-700 text-sm">
++          Simpan
++        </button>
++        <span class="text-xs text-stone-400">
++          Harga saat ini: {formatRupiah(product.price)}
++        </span>
++      </div>
++    </form>
++
++    <!-- Image upload -->
++    <div class="bg-white rounded-xl p-5 shadow-sm">
++      <ImageUploader productId={product.id} currentImageUrl={product.image_url} />
++    </div>
++
++    <!-- Danger zone -->
++    <div class="bg-white rounded-xl p-5 shadow-sm border border-red-100">
++      <p class="text-sm font-medium text-stone-700 mb-3">Zona Bahaya</p>
++      <div class="flex gap-3 items-center">
++        <button
++          type="button"
++          id="toggle-active-btn"
++          data-id={product.id}
++          data-active={product.is_active}
++          class={`text-sm px-4 py-2 rounded-lg border font-medium ${product.is_active === 1 ? 'border-amber-200 text-amber-700 hover:bg-amber-50' : 'border-green-200 text-green-700 hover:bg-green-50'}`}
++        >
++          {product.is_active === 1 ? 'Tandai Habis' : 'Aktifkan Kembali'}
++        </button>
++        <button
++          type="button"
++          id="delete-product-btn"
++          data-id={product.id}
++          data-name={product.displayName}
++          class="text-sm px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 font-medium"
++        >
++          Hapus Produk
++        </button>
++      </div>
++      <p id="danger-error" class="hidden text-red-600 text-xs mt-2"></p>
++    </div>
++  </div>
++</AdminLayout>
++
++<script>
++  // Toggle active/inactive
++  document.getElementById('toggle-active-btn')?.addEventListener('click', async () => {
++    const btn = document.getElementById('toggle-active-btn') as HTMLButtonElement;
++    const newActive = Number(btn.dataset.active) === 1 ? 0 : 1;
++    const res = await fetch('/admin/api/products', {
++      method: 'PUT',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ id: btn.dataset.id, is_active: newActive }),
++    });
++    if (res.ok) {
++      window.location.reload();
++    } else {
++      const errEl = document.getElementById('danger-error')!;
++      errEl.textContent = 'Gagal mengubah status produk';
++      errEl.classList.remove('hidden');
++    }
++  });
++
++  // Delete product
++  document.getElementById('delete-product-btn')?.addEventListener('click', async () => {
++    const btn = document.getElementById('delete-product-btn') as HTMLButtonElement;
++    if (!window.confirm(`Hapus produk "${btn.dataset.name}"? Tindakan ini tidak dapat dibatalkan.`)) return;
++    const res = await fetch('/admin/api/products', {
++      method: 'DELETE',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ id: btn.dataset.id }),
++    });
++    if (res.ok) {
++      window.location.href = '/admin/produk';
++    } else {
++      const errEl = document.getElementById('danger-error')!;
++      errEl.textContent = 'Gagal menghapus produk';
++      errEl.classList.remove('hidden');
++    }
++  });
++</script>
+diff --git a/src/pages/admin/produk/index.astro b/src/pages/admin/produk/index.astro
+new file mode 100644
+index 0000000..8a147df
+--- /dev/null
++++ b/src/pages/admin/produk/index.astro
+@@ -0,0 +1,99 @@
++---
++export const prerender = false;
++import AdminLayout from '../../../layouts/AdminLayout.astro';
++import { getAllProducts } from '../../../lib/db';
++import { formatRupiah } from '../../../lib/wa';
++
++const db = Astro.locals.runtime.env.DB;
++const products = await getAllProducts(db);
++---
++
++<AdminLayout title="Produk">
++  <div class="flex items-center justify-between mb-6">
++    <h1 class="text-2xl font-bold">Produk</h1>
++    <a href="/admin/produk/new" class="bg-brand-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-brand-700">
++      + Tambah
++    </a>
++  </div>
++
++  {products.length === 0 && (
++    <div class="bg-white rounded-xl p-8 shadow-sm text-center text-stone-400">
++      <p class="text-sm">Belum ada produk.</p>
++      <a href="/admin/produk/new" class="text-brand-600 text-sm font-medium hover:underline mt-2 inline-block">Tambah produk pertama</a>
++    </div>
++  )}
++
++  <div class="space-y-2">
++    {products.map(p => (
++      <div class="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
++        <div class="w-14 h-14 rounded-lg overflow-hidden bg-stone-100 flex-shrink-0">
++          {p.image_url ? (
++            <img src={p.image_url} alt={p.displayName} class="w-full h-full object-cover" />
++          ) : (
++            <div class="w-full h-full flex items-center justify-center text-stone-300 text-xl">&#x1F7AB;</div>
++          )}
++        </div>
++        <div class="flex-1 min-w-0">
++          <p class="font-medium text-stone-900 text-sm truncate">{p.displayName}</p>
++          <p class="text-xs text-stone-500">{formatRupiah(p.price)}</p>
++          <span class={`inline-block text-xs px-2 py-0.5 rounded-full mt-0.5 ${p.is_active === 1 ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}`}>
++            {p.is_active === 1 ? 'Aktif' : 'Habis'}
++          </span>
++        </div>
++        <div class="flex gap-1.5 flex-shrink-0">
++          <button
++            type="button"
++            class="text-xs px-2.5 py-1.5 border border-stone-200 rounded-lg hover:bg-stone-50 toggle-btn"
++            data-id={p.id}
++            data-active={p.is_active}
++          >
++            {p.is_active === 1 ? 'Habiskan' : 'Aktifkan'}
++          </button>
++          <a href={`/admin/produk/${p.id}`} class="text-xs px-2.5 py-1.5 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100">
++            Edit
++          </a>
++          <button
++            type="button"
++            class="text-xs px-2.5 py-1.5 text-red-600 border border-red-100 rounded-lg hover:bg-red-50 delete-btn"
++            data-id={p.id}
++            data-name={p.displayName}
++          >
++            &times;
++          </button>
++        </div>
++      </div>
++    ))}
++  </div>
++</AdminLayout>
++
++<script>
++  document.querySelectorAll('.toggle-btn').forEach(btn => {
++    btn.addEventListener('click', async () => {
++      const el = btn as HTMLButtonElement;
++      const newActive = Number(el.dataset.active) === 1 ? 0 : 1;
++      const res = await fetch('/admin/api/products', {
++        method: 'PUT',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ id: el.dataset.id, is_active: newActive }),
++      });
++      if (res.ok) {
++        window.location.reload();
++      }
++    });
++  });
++
++  document.querySelectorAll('.delete-btn').forEach(btn => {
++    btn.addEventListener('click', async () => {
++      const el = btn as HTMLButtonElement;
++      if (!window.confirm(`Hapus "${el.dataset.name}"?`)) return;
++      const res = await fetch('/admin/api/products', {
++        method: 'DELETE',
++        headers: { 'Content-Type': 'application/json' },
++        body: JSON.stringify({ id: el.dataset.id }),
++      });
++      if (res.ok) {
++        window.location.reload();
++      }
++    });
++  });
++</script>
+diff --git a/src/pages/admin/produk/new.astro b/src/pages/admin/produk/new.astro
+new file mode 100644
+index 0000000..aa53933
+--- /dev/null
++++ b/src/pages/admin/produk/new.astro
+@@ -0,0 +1,119 @@
++---
++export const prerender = false;
++import AdminLayout from '../../../layouts/AdminLayout.astro';
++import { getCategories, getVariants } from '../../../lib/db';
++
++const db = Astro.locals.runtime.env.DB;
++const [categories, variants] = await Promise.all([getCategories(db), getVariants(db)]);
++
++let error = '';
++if (Astro.request.method === 'POST') {
++  const form = await Astro.request.formData();
++  const originalPriceRaw = form.get('original_price');
++
++  let body: Record<string, unknown>;
++  try {
++    body = {
++      category_id: form.get('category_id'),
++      variant_id: form.get('variant_id'),
++      price: Number(form.get('price')),
++      original_price: originalPriceRaw && String(originalPriceRaw).trim() !== '' ? Number(originalPriceRaw) : null,
++      sort_order: Number(form.get('sort_order') ?? 0),
++    };
++  } catch {
++    error = 'Data tidak valid';
++    body = {};
++  }
++
++  if (!error) {
++    const res = await fetch(new URL('/admin/api/products', Astro.url), {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify(body),
++    });
++
++    if (res.ok) {
++      const { id } = await res.json() as { id: string };
++      return Astro.redirect(`/admin/produk/${id}`);
++    } else {
++      try {
++        const { error: e } = await res.json() as { error: string };
++        error = e || 'Gagal menyimpan produk';
++      } catch {
++        error = 'Gagal menyimpan produk';
++      }
++    }
++  }
++}
++---
++
++<AdminLayout title="Tambah Produk">
++  <div class="flex items-center gap-3 mb-6">
++    <a href="/admin/produk" class="text-stone-500 hover:text-stone-700 text-sm">&#8592; Kembali</a>
++    <h1 class="text-2xl font-bold">Tambah Produk</h1>
++  </div>
++
++  {error && (
++    <div class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 mb-4 text-sm">{error}</div>
++  )}
++
++  {categories.length === 0 || variants.length === 0 ? (
++    <div class="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-4 py-3 text-sm">
++      Tambah <a href="/admin/master" class="underline font-medium">kategori dan variant</a> dulu sebelum membuat produk.
++    </div>
++  ) : (
++    <form method="POST" class="bg-white rounded-xl p-6 shadow-sm space-y-4">
++      <div class="grid grid-cols-2 gap-4">
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Kategori *</label>
++          <select name="category_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
++            {categories.map(c => <option value={c.id}>{c.name}</option>)}
++          </select>
++        </div>
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Variant *</label>
++          <select name="variant_id" required class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400">
++            {variants.map(v => <option value={v.id}>{v.label}</option>)}
++          </select>
++        </div>
++      </div>
++      <div class="grid grid-cols-2 gap-4">
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Jual (Rp) *</label>
++          <input
++            type="number"
++            name="price"
++            required
++            min="1"
++            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++            placeholder="25000"
++          />
++        </div>
++        <div>
++          <label class="block text-sm font-medium text-stone-700 mb-1">Harga Coret (Rp)</label>
++          <input
++            type="number"
++            name="original_price"
++            min="1"
++            class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++            placeholder="30000 (opsional)"
++          />
++        </div>
++      </div>
++      <div>
++        <label class="block text-sm font-medium text-stone-700 mb-1">Urutan Tampil</label>
++        <input
++          type="number"
++          name="sort_order"
++          value="0"
++          class="w-32 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-brand-400"
++        />
++      </div>
++      <div class="pt-2">
++        <button type="submit" class="bg-brand-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-brand-700 text-sm">
++          Simpan &amp; Upload Foto
++        </button>
++      </div>
++    </form>
++  )}
++</AdminLayout>
+diff --git a/src/pages/index.astro b/src/pages/index.astro
+index 561196b..dcc4082 100644
+--- a/src/pages/index.astro
++++ b/src/pages/index.astro
+@@ -1,17 +1,78 @@
+ ---
++import BaseLayout from '../layouts/BaseLayout.astro';
++import CategoryTabs from '../components/CategoryTabs.astro';
++import ProductCard from '../components/ProductCard.astro';
++import { getAllProducts, getCategories } from '../lib/db';
+ 
++const db = Astro.locals.runtime.env.DB;
++const waNumber = Astro.locals.runtime.env.WA_NUMBER;
++
++const [products, categories] = await Promise.all([
++  getAllProducts(db),
++  getCategories(db),
++]);
+ ---
+ 
+-<html lang="en">
+-	<head>
+-		<meta charset="utf-8" />
+-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+-		<link rel="icon" href="/favicon.ico" />
+-		<meta name="viewport" content="width=device-width" />
+-		<meta name="generator" content={Astro.generator} />
+-		<title>Astro</title>
+-	</head>
+-	<body>
+-		<h1>Astro</h1>
+-	</body>
+-</html>
++<BaseLayout
++  title="Nejemeyek — Peyek Khas Jogja | Peyek Rebon, Kacang, Teri Jogja"
++  description="Peyek khas Jogja — Peyek Rebon, Peyek Kacang, Peyek Teri. Dibuat dengan resep tradisional. Pesan via WhatsApp, kirim GoSend atau COD area Yogyakarta."
++  localBusiness={true}
++>
++  <!-- Header -->
++  <header class="bg-brand-700 text-white px-4 py-4 flex items-center justify-between">
++    <div>
++      <p class="text-brand-200 text-xs tracking-widest uppercase">Peyek Khas Jogja</p>
++      <h1 class="text-xl font-extrabold">Nejemeyek</h1>
++    </div>
++    <a
++      href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Halo Nejemeyek, saya mau tanya produk dan stok yang tersedia')}`}
++      target="_blank"
++      rel="noopener noreferrer"
++      class="text-xs bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg transition-colors"
++    >
++      Chat WA
++    </a>
++  </header>
++
++  <!-- Category tabs -->
++  <CategoryTabs categories={categories} />
++
++  <!-- Product grid -->
++  <section class="px-4 py-4">
++    {products.length === 0 ? (
++      <div class="text-center py-16 text-stone-400">
++        <p class="text-4xl mb-3">🫘</p>
++        <p>Produk segera hadir...</p>
++      </div>
++    ) : (
++      <div class="grid grid-cols-2 gap-3">
++        {products.map(product => (
++          <ProductCard product={product} waNumber={waNumber} />
++        ))}
++      </div>
++    )}
++  </section>
++
++  <!-- How to order -->
++  <section class="mx-4 my-6 bg-brand-50 rounded-2xl p-4">
++    <p class="font-semibold text-brand-900 mb-3 text-sm">Cara Pesan</p>
++    <div class="space-y-2 text-sm text-stone-600">
++      <div class="flex items-center gap-3">
++        <span class="text-xl">🛒</span>
++        <span>Pilih produk, klik Pesan</span>
++      </div>
++      <div class="flex items-center gap-3">
++        <span class="text-xl">💬</span>
++        <span>Chat konfirmasi via WhatsApp</span>
++      </div>
++      <div class="flex items-center gap-3">
++        <span class="text-xl">🛵</span>
++        <span>Kirim GoSend / COD Yogyakarta</span>
++      </div>
++    </div>
++  </section>
++
++  <footer class="text-center text-stone-400 text-xs py-6 border-t border-stone-100">
++    &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
++  </footer>
++</BaseLayout>
+diff --git a/src/pages/produk/[id].astro b/src/pages/produk/[id].astro
+new file mode 100644
+index 0000000..6e9754d
+--- /dev/null
++++ b/src/pages/produk/[id].astro
+@@ -0,0 +1,108 @@
++---
++import BaseLayout from '../../layouts/BaseLayout.astro';
++import { getProductById } from '../../lib/db';
++import { formatRupiah, buildWaOrderUrl } from '../../lib/wa';
++
++// SSR: D1 is only accessible at request time via Astro.locals.runtime
++export const prerender = false;
++
++const { id } = Astro.params;
++const db = Astro.locals.runtime.env.DB;
++const waNumber = Astro.locals.runtime.env.WA_NUMBER;
++
++const product = await getProductById(db, id);
++if (!product) return Astro.redirect('/');
++
++const waUrl = buildWaOrderUrl({ displayName: product.displayName, qty: 1, waNumber });
++
++const productSchema = {
++  '@context': 'https://schema.org',
++  '@type': 'Product',
++  name: product.displayName,
++  image: product.image_url ?? '',
++  brand: { '@type': 'Brand', name: 'Nejemeyek' },
++  offers: {
++    '@type': 'Offer',
++    priceCurrency: 'IDR',
++    price: product.price,
++    availability: product.is_active === 1
++      ? 'https://schema.org/InStock'
++      : 'https://schema.org/OutOfStock',
++    seller: { '@type': 'Organization', name: 'Nejemeyek' },
++  },
++};
++---
++
++<BaseLayout
++  title={`${product.displayName} — Peyek Khas Jogja | Nejemeyek`}
++  description={`${product.displayName} peyek khas Jogja. Harga ${formatRupiah(product.price)}. Pesan via WhatsApp, kirim GoSend atau COD wilayah Yogyakarta.`}
++  ogImage={product.image_url ?? undefined}
++  productSchema={productSchema}
++>
++  <div class="max-w-lg mx-auto">
++    <!-- Back link -->
++    <div class="px-4 pt-4">
++      <a href="/" class="text-sm text-stone-500 hover:text-stone-700">← Kembali</a>
++    </div>
++
++    <!-- Photo -->
++    <div class="aspect-square bg-stone-100 mt-3">
++      {product.image_url ? (
++        <img
++          src={product.image_url}
++          alt={product.displayName}
++          class="w-full h-full object-cover"
++        />
++      ) : (
++        <div class="w-full h-full flex items-center justify-center text-stone-300 text-6xl">🫘</div>
++      )}
++    </div>
++
++    <!-- Product info -->
++    <div class="px-4 py-4 space-y-4">
++      <div>
++        <h1 class="text-2xl font-extrabold text-stone-900">{product.category.name}</h1>
++        <p class="text-stone-400 text-sm mt-0.5">{product.variant.label}</p>
++        <div class="mt-2">
++          {product.original_price && (
++            <p class="text-stone-400 text-sm line-through">{formatRupiah(product.original_price)}</p>
++          )}
++          <p class="text-amber-700 font-bold text-3xl">{formatRupiah(product.price)}</p>
++        </div>
++      </div>
++
++      <!-- Habis notice -->
++      {product.is_active === 0 && (
++        <div class="bg-stone-100 text-stone-500 text-sm text-center py-3 rounded-xl">
++          Stok habis — hubungi kami untuk info ketersediaan
++        </div>
++      )}
++
++      <!-- WA Button (only when active) -->
++      {product.is_active === 1 && (
++        <a
++          href={waUrl}
++          target="_blank"
++          rel="noopener noreferrer"
++          class="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl text-base transition-colors"
++        >
++          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
++            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
++            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.55 4.107 1.512 5.832L.057 23.999l6.304-1.654A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.007-1.371l-.36-.213-3.736.979.999-3.648-.233-.374A9.818 9.818 0 1 1 12 21.818z"/>
++          </svg>
++          Pesan via WhatsApp
++        </a>
++      )}
++
++      <!-- Delivery info -->
++      <div class="bg-stone-50 rounded-xl p-4 text-sm text-stone-500 space-y-2">
++        <p>🛵 GoSend / COD wilayah Yogyakarta</p>
++        <p>📦 Dikemas rapi agar tetap renyah</p>
++      </div>
++    </div>
++
++    <footer class="text-center text-stone-400 text-xs py-6 border-t border-stone-100 mt-4">
++      &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
++    </footer>
++  </div>
++</BaseLayout>
+diff --git a/src/pages/robots.txt.ts b/src/pages/robots.txt.ts
+new file mode 100644
+index 0000000..cc60fa2
+--- /dev/null
++++ b/src/pages/robots.txt.ts
+@@ -0,0 +1,11 @@
++import type { APIRoute } from 'astro';
++
++export const prerender = false;
++
++export const GET: APIRoute = ({ site }) => {
++  const base = site?.toString().replace(/\/$/, '') ?? '';
++  return new Response(
++    `User-agent: *\nAllow: /\nDisallow: /admin/\n\nSitemap: ${base}/sitemap.xml`,
++    { headers: { 'Content-Type': 'text/plain' } },
++  );
++};
+diff --git a/src/pages/sitemap.xml.ts b/src/pages/sitemap.xml.ts
+new file mode 100644
+index 0000000..bd7f2d0
+--- /dev/null
++++ b/src/pages/sitemap.xml.ts
+@@ -0,0 +1,30 @@
++import type { APIRoute } from 'astro';
++import { getActiveProducts } from '../lib/db';
++
++export const prerender = false;
++
++export const GET: APIRoute = async ({ locals, site }) => {
++  const db = locals.runtime.env.DB;
++  const products = await getActiveProducts(db);
++  const base = site?.toString().replace(/\/$/, '') ?? '';
++
++  const urls = [
++    { loc: base + '/', priority: '1.0', changefreq: 'weekly' },
++    ...products.map(p => ({
++      loc: `${base}/produk/${p.id}`,
++      priority: '0.8',
++      changefreq: 'weekly',
++    })),
++  ];
++
++  const xml = `<?xml version="1.0" encoding="UTF-8"?>
++<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
++${urls.map(u => `  <url>
++    <loc>${u.loc}</loc>
++    <changefreq>${u.changefreq}</changefreq>
++    <priority>${u.priority}</priority>
++  </url>`).join('\n')}
++</urlset>`;
++
++  return new Response(xml, { headers: { 'Content-Type': 'application/xml' } });
++};
+diff --git a/src/types.ts b/src/types.ts
+new file mode 100644
+index 0000000..3c2810e
+--- /dev/null
++++ b/src/types.ts
+@@ -0,0 +1,31 @@
++export interface Category {
++  id: string;
++  name: string;
++  sort_order: number;
++  created_at: string;
++}
++
++export interface ProductVariant {
++  id: string;
++  label: string;
++  sort_order: number;
++}
++
++export interface Product {
++  id: string;
++  category_id: string;
++  variant_id: string;
++  price: number;
++  original_price: number | null;
++  image_url: string | null;
++  is_active: number;
++  sort_order: number;
++  created_at: string;
++  updated_at: string;
++}
++
++export interface ProductWithDetails extends Product {
++  category: Category;
++  variant: ProductVariant;
++  displayName: string; // "${category.name} ${variant.label}"
++}

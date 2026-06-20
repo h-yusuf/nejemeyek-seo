@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - paragraph [ref=e4]: Peyek Khas Jogja
+      - heading "Nejemeyek" [level=1] [ref=e5]
+    - link "Chat WA" [ref=e6] [cursor=pointer]:
+      - /url: https://wa.me/undefined?text=Halo%20Nejemeyek%2C%20saya%20mau%20tanya%20produk%20dan%20stok%20yang%20tersedia
+  - generic [ref=e8]:
+    - button "Semua" [ref=e9] [cursor=pointer]
+    - button "Peyek Rebon" [ref=e10] [cursor=pointer]
+    - button "Peyek Kacang Tanah" [ref=e11] [cursor=pointer]
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e16]: 🫘
+      - generic [ref=e17]:
+        - paragraph [ref=e18]: Peyek Rebon
+        - paragraph [ref=e19]: 250 gram
+        - generic [ref=e20]:
+          - paragraph [ref=e21]: Rp 30.000
+          - paragraph [ref=e22]: Rp 25.000
+        - link "+ Pesan" [ref=e23] [cursor=pointer]:
+          - /url: https://wa.me/undefined?text=Halo%2C%20saya%20mau%20pesan%3A%0A-%20Peyek%20Rebon%20250%20gram%20x1%0AApakah%20stok%20tersedia%3F
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: 🫘
+        - generic [ref=e28]: Habis
+      - generic [ref=e29]:
+        - paragraph [ref=e30]: Peyek Rebon
+        - paragraph [ref=e31]: 500 gram
+        - paragraph [ref=e33]: Rp 35.000
+        - generic [ref=e34]: + Pesan
+    - generic [ref=e35]:
+      - generic [ref=e37]: 🫘
+      - generic [ref=e38]:
+        - paragraph [ref=e39]: Peyek Kacang Tanah
+        - paragraph [ref=e40]: 250 gram
+        - paragraph [ref=e42]: Rp 25.000
+        - link "+ Pesan" [ref=e43] [cursor=pointer]:
+          - /url: https://wa.me/undefined?text=Halo%2C%20saya%20mau%20pesan%3A%0A-%20Peyek%20Kacang%20Tanah%20250%20gram%20x1%0AApakah%20stok%20tersedia%3F
+  - generic [ref=e44]:
+    - paragraph [ref=e45]: Cara Pesan
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: 🛒
+        - generic [ref=e49]: Pilih produk, klik Pesan
+      - generic [ref=e50]:
+        - generic [ref=e51]: 💬
+        - generic [ref=e52]: Chat konfirmasi via WhatsApp
+      - generic [ref=e53]:
+        - generic [ref=e54]: 🛵
+        - generic [ref=e55]: Kirim GoSend / COD Yogyakarta
+  - contentinfo [ref=e56]: © 2026 Nejemeyek — Peyek Khas Jogja

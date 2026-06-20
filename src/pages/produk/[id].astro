@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProductById } from '../../lib/db';
+import { formatRupiah, buildWaOrderUrl } from '../../lib/wa';
+
+// SSR: D1 is only accessible at request time via Astro.locals.runtime
+export const prerender = false;
+
+const { id } = Astro.params;
+const db = Astro.locals.runtime.env.DB;
+const waNumber = Astro.locals.runtime.env.WA_NUMBER;
+
+const product = await getProductById(db, id);
+if (!product) return Astro.redirect('/');
+
+const waUrl = buildWaOrderUrl({ displayName: product.displayName, qty: 1, waNumber });
+
+const productSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: product.displayName,
+  image: product.image_url ?? '',
+  brand: { '@type': 'Brand', name: 'Nejemeyek' },
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'IDR',
+    price: product.price,
+    availability: product.is_active === 1
+      ? 'https://schema.org/InStock'
+      : 'https://schema.org/OutOfStock',
+    seller: { '@type': 'Organization', name: 'Nejemeyek' },
+  },
+};
+---
+
+<BaseLayout
+  title={`${product.displayName} — Peyek Khas Jogja | Nejemeyek`}
+  description={`${product.displayName} peyek khas Jogja. Harga ${formatRupiah(product.price)}. Pesan via WhatsApp, kirim GoSend atau COD wilayah Yogyakarta.`}
+  ogImage={product.image_url ?? undefined}
+  productSchema={productSchema}
+>
+  <div class="max-w-lg mx-auto">
+    <!-- Back link -->
+    <div class="px-4 pt-4">
+      <a href="/" class="text-sm text-stone-500 hover:text-stone-700">← Kembali</a>
+    </div>
+
+    <!-- Photo -->
+    <div class="aspect-square bg-stone-100 mt-3">
+      {product.image_url ? (
+        <img
+          src={product.image_url}
+          alt={product.displayName}
+          class="w-full h-full object-cover"
+        />
+      ) : (
+        <div class="w-full h-full flex items-center justify-center text-stone-300 text-6xl">🫘</div>
+      )}
+    </div>
+
+    <!-- Product info -->
+    <div class="px-4 py-4 space-y-4">
+      <div>
+        <h1 class="text-2xl font-extrabold text-stone-900">{product.category.name}</h1>
+        <p class="text-stone-400 text-sm mt-0.5">{product.variant.label}</p>
+        <div class="mt-2">
+          {product.original_price && (
+            <p class="text-stone-400 text-sm line-through">{formatRupiah(product.original_price)}</p>
+          )}
+          <p class="text-amber-700 font-bold text-3xl">{formatRupiah(product.price)}</p>
+        </div>
+      </div>
+
+      <!-- Habis notice -->
+      {product.is_active === 0 && (
+        <div class="bg-stone-100 text-stone-500 text-sm text-center py-3 rounded-xl">
+          Stok habis — hubungi kami untuk info ketersediaan
+        </div>
+      )}
+
+      <!-- WA Button (only when active) -->
+      {product.is_active === 1 && (
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-2xl text-base transition-colors"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.118.55 4.107 1.512 5.832L.057 23.999l6.304-1.654A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.007-1.371l-.36-.213-3.736.979.999-3.648-.233-.374A9.818 9.818 0 1 1 12 21.818z"/>
+          </svg>
+          Pesan via WhatsApp
+        </a>
+      )}
+
+      <!-- Delivery info -->
+      <div class="bg-stone-50 rounded-xl p-4 text-sm text-stone-500 space-y-2">
+        <p>🛵 GoSend / COD wilayah Yogyakarta</p>
+        <p>📦 Dikemas rapi agar tetap renyah</p>
+      </div>
+    </div>
+
+    <footer class="text-center text-stone-400 text-xs py-6 border-t border-stone-100 mt-4">
+      &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
+    </footer>
+  </div>
+</BaseLayout>
