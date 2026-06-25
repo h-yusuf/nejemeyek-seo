@@ -48,43 +48,22 @@ const { productId, currentImageUrl } = Astro.props;
     statusEl.className = 'text-xs text-stone-400 mt-1';
 
     try {
-      const params = new URLSearchParams({
-        filename: file.name,
-        contentType: file.type,
-        productId,
-      });
-      const res = await fetch(`/admin/api/images?${params}`);
-      if (!res.ok) {
-        statusEl.textContent = 'Gagal mendapatkan URL upload';
-        statusEl.className = 'text-xs text-red-500 mt-1';
-        return;
-      }
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('productId', productId);
 
-      const { presignedUrl, publicUrl } = await res.json() as { presignedUrl: string; publicUrl: string };
-
-      const uploadRes = await fetch(presignedUrl, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
-      });
-      if (!uploadRes.ok) {
-        statusEl.textContent = 'Upload gagal';
-        statusEl.className = 'text-xs text-red-500 mt-1';
-        return;
-      }
-
-      const saveRes = await fetch('/admin/api/images', {
+      const res = await fetch('/admin/api/images-upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, imageUrl: publicUrl }),
+        body: formData,
       });
 
-      if (saveRes.ok) {
+      if (res.ok) {
         statusEl.textContent = 'Upload berhasil!';
         statusEl.className = 'text-xs text-green-600 mt-1';
         window.location.reload();
       } else {
-        statusEl.textContent = 'Gagal menyimpan foto';
+        const err = await res.json() as { error?: string };
+        statusEl.textContent = err.error ?? 'Upload gagal';
         statusEl.className = 'text-xs text-red-500 mt-1';
       }
     } catch (err) {

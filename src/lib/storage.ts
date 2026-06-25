@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+
 export interface StorageConfig {
   endpoint: string;
   bucket: string;
@@ -38,6 +39,21 @@ export async function getPresignedUploadUrl(
 
 export function getPublicUrl(config: StorageConfig, key: string): string {
   return `${config.endpoint}/${config.bucket}/${key}`;
+}
+
+export async function uploadObject(
+  config: StorageConfig,
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const client = createClient(config);
+  await client.send(new PutObjectCommand({
+    Bucket: config.bucket,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  }));
 }
 
 export async function deleteObject(config: StorageConfig, key: string): Promise<void> {
