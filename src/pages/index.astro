@@ -15,8 +15,8 @@ const [products, categories] = await Promise.all([
 ---
 
 <BaseLayout
-  title="Nejemeyek — Peyek Khas Jogja | Peyek Rebon, Kacang, Teri Jogja"
-  description="Peyek khas Jogja — Peyek Rebon, Peyek Kacang, Peyek Teri. Dibuat dengan resep tradisional. Pesan via WhatsApp, kirim GoSend atau COD area Yogyakarta."
+  title="Nejemeyek — Supplier & Produsen Peyek Jogja | Peyek Rebon, Kacang, Toples"
+  description="Produsen dan supplier peyek khas Jogja. Peyek Rebon, Peyek Kacang, Peyek Toples, Peyek Tipis. Oleh-oleh dan cemilan khas Yogyakarta. Cocok untuk pecel Madiun. Pesan via WhatsApp, COD area Jogja."
   localBusiness={true}
 >
   <!-- Header -->
@@ -78,8 +78,25 @@ const [products, categories] = await Promise.all([
     </p>
   </section>
 
-  <footer class="text-center text-stone-400 text-xs py-8 border-t border-stone-200 mt-2">
-    &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
+  <footer class="border-t border-stone-200 mt-2">
+    <div class="px-4 py-6 space-y-3">
+      <h2 class="text-sm font-semibold text-stone-700">Tentang Nejemeyek</h2>
+      <p class="text-xs text-stone-500 leading-relaxed">
+        Nejemeyek adalah produsen dan supplier peyek khas Jogja yang berpusat di Yogyakarta.
+        Kami menyediakan berbagai varian: <strong>Peyek Rebon</strong>, <strong>Peyek Kacang</strong>,
+        <strong>Peyek Tipis</strong>, hingga <strong>Peyek Toples</strong> siap kirim.
+        Cocok sebagai pelengkap <strong>pecel Madiun</strong> maupun
+        <strong>oleh-oleh khas Jogja</strong> dan <strong>cemilan kekinian Yogyakarta</strong>.
+      </p>
+      <p class="text-xs text-stone-500 leading-relaxed">
+        Sebagai <strong>pusat produksi peyek di Jogja</strong>, kami melayani pembelian satuan
+        maupun partai besar untuk reseller dan supplier. Pengiriman GoSend, COD area Sleman &amp;
+        Kota Yogyakarta, atau paket ke seluruh Indonesia.
+      </p>
+    </div>
+    <p class="text-center text-stone-400 text-xs py-4 border-t border-stone-200">
+      &copy; {new Date().getFullYear()} Nejemeyek — Peyek Khas Jogja
+    </p>
   </footer>
 </BaseLayout>
 

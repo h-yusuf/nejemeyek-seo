@@ -25,18 +25,21 @@ const phoneNumber = waNumber ? '+62' + waNumber.slice(2) : '';
 
 const localBusinessSchema = {
   '@context': 'https://schema.org',
-  '@type': 'LocalBusiness',
+  '@type': 'FoodEstablishment',
   name: 'Nejemeyek',
-  description: 'Peyek khas Jogja, dibuat dengan resep tradisional.',
+  description: 'Produsen dan supplier peyek khas Jogja. Peyek Rebon, Peyek Kacang, Peyek Toples, Peyek Tipis. Oleh-oleh dan cemilan khas Yogyakarta.',
   url: Astro.site?.toString() ?? '',
   telephone: phoneNumber,
   address: {
     '@type': 'PostalAddress',
     addressLocality: 'Yogyakarta',
-    addressRegion: 'DIY',
+    addressRegion: 'Daerah Istimewa Yogyakarta',
     addressCountry: 'ID',
   },
-  areaServed: 'Yogyakarta',
+  areaServed: ['Yogyakarta', 'Sleman', 'Bantul', 'Magelang', 'Klaten', 'Indonesia'],
+  servesCuisine: 'Indonesian',
+  keywords: 'peyek jogja, peyek rebon, peyek kacang, peyek toples, peyek tipis, supplier peyek jogja, produsen peyek jogja, pusat produksi peyek, oleh-oleh khas jogja, cemilan jogja, peyek untuk pecel madiun',
+  priceRange: 'Rp',
 };
 ---
 
@@ -57,7 +60,7 @@ const localBusinessSchema = {
     <meta property="og:locale" content="id_ID" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
